@@ -71,11 +71,14 @@ body {
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -.5px;
+  line-height: 1;
+  display: block;
   background: linear-gradient(135deg, var(--green) 0%, #8df589 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.logo-by { font-size: .68rem; color: var(--text-dim); letter-spacing: .3px; margin-top: 2px; text-align: left; line-height: 1; }
 .tagline { color: var(--text-muted); font-size: .88rem; letter-spacing: .2px; }
 
 /* ── Main ── */
