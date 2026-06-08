@@ -322,9 +322,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 /* ── Divider ── */
 .divider { height: 1px; background: var(--border); margin: 22px 0; }
 
-/* ── Option row (expiry toggle) ── */
-.option-row { margin-bottom: 14px; }
-.check-full { width: 100%; }
 
 /* ── Primary Button ── */
 .btn-primary {
@@ -491,6 +488,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   font-size: .75rem;
   border-top: 1px solid var(--border);
 }
+.footer-link {
+  color: var(--green);
+  text-decoration: none;
+  transition: opacity var(--transition);
+}
+.footer-link:hover { opacity: .75; }
 
 /* ── View Page ── */
 .view-main {
@@ -643,7 +646,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .expired-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-top: 2px solid var(--danger);
   border-radius: var(--radius);
   padding: 44px 36px;
   text-align: center;

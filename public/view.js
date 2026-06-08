@@ -42,40 +42,9 @@
     setState('state-expired');
   }
 
-  function startClearTimer(el, badge, endTimestamp) {
-    const tick = () => {
-      const remaining = Math.ceil((endTimestamp - Date.now()) / 1000);
-      if (remaining <= 0) {
-        el.textContent = '0:00';
-        clearPage();
-        return;
-      }
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-      if (remaining <= 60) badge.classList.add('urgent');
-      setTimeout(tick, 500);
-    };
-    tick();
-  }
-
-  function clearPage() {
-    document.getElementById('secret-text').value = '';
-    setState('state-cleared');
-  }
-
-  function showSecret(plaintext, expiresAt) {
+  function showSecret(plaintext) {
     document.getElementById('secret-text').value = plaintext;
     setState('state-secret');
-
-    const timerEl = document.getElementById('clear-timer');
-    const badge   = document.getElementById('timer-badge');
-    if (expiresAt) {
-      badge.style.display = '';
-      startClearTimer(timerEl, badge, expiresAt);
-    } else {
-      badge.style.display = 'none';
-    }
 
     // Defined once, not re-attached on repeated calls (F-19)
     const copyBtn = document.getElementById('btn-copy-secret');
@@ -123,13 +92,13 @@
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const { ciphertext, iv, expiresAt } = await res.json();
+      const { ciphertext, iv } = await res.json();
       const plaintext = await decryptSecret(ciphertext, iv, keyB64);
 
       // Strip the key from the URL bar and browser history (F-06)
       history.replaceState(null, '', window.location.pathname);
 
-      showSecret(plaintext, expiresAt);
+      showSecret(plaintext);
     } catch (err) {
       showExpired(
         'Something Went Wrong',

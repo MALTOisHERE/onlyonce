@@ -102,17 +102,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // ── In-memory store ─────────────────────────────────────────────────────────
 const secrets     = new Map();
-const TTL_MS      = 10 * 60 * 1000;
 const MAX_SECRETS = 10_000;
-
-// Purge expired entries every minute; unref so it doesn't block shutdown
-const purge = setInterval(() => {
-  const now = Date.now();
-  for (const [id, s] of secrets) {
-    if (s.expiresAt !== null && now > s.expiresAt) secrets.delete(id);
-  }
-}, 60_000);
-if (purge.unref) purge.unref();
 
 // ── Validators ──────────────────────────────────────────────────────────────
 const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -129,7 +119,7 @@ app.post('/api/secret', createLimiter.middleware(), (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv, expires } = body;
+  const { ciphertext, iv } = body;
 
   if (
     typeof ciphertext !== 'string' || typeof iv !== 'string' ||
@@ -145,11 +135,10 @@ app.post('/api/secret', createLimiter.middleware(), (req, res) => {
     return res.status(503).json({ error: 'Server is at capacity. Try again shortly.' });
   }
 
-  const id        = crypto.randomUUID();
-  const expiresAt = expires === true ? Date.now() + TTL_MS : null;
-  secrets.set(id, { ciphertext, iv, expiresAt });
+  const id = crypto.randomUUID();
+  secrets.set(id, { ciphertext, iv });
 
-  res.status(201).json({ id, expiresAt });
+  res.status(201).json({ id });
 });
 
 // ── GET /api/secret/:id ─────────────────────────────────────────────────────
@@ -165,13 +154,8 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     return res.status(404).json({ error: 'not_found' });
   }
 
-  if (secret.expiresAt !== null && Date.now() > secret.expiresAt) {
-    secrets.delete(id);
-    return res.status(410).json({ error: 'expired' });
-  }
-
   // Consume the secret atomically before responding
-  const payload = { ciphertext: secret.ciphertext, iv: secret.iv, expiresAt: secret.expiresAt };
+  const payload = { ciphertext: secret.ciphertext, iv: secret.iv };
   secrets.delete(id);
   res.json(payload);
 });

@@ -142,12 +142,11 @@
 
     try {
       const { ciphertext, iv, key } = await encryptSecret(secret);
-      const expires = document.getElementById('opt-expires').checked;
 
       const res = await fetch('/api/secret', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ciphertext, iv, expires }),
+        body:    JSON.stringify({ ciphertext, iv }),
       });
 
       if (res.status === 429) {
@@ -160,7 +159,7 @@
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const { id, expiresAt } = await res.json();
+      const { id } = await res.json();
 
       const viewUrl = `${window.location.origin}/view/${id}#${encodeURIComponent(key)}`;
       document.getElementById('link-output').value = viewUrl;
@@ -169,14 +168,6 @@
       // Clear plaintext from the input so it's not left in the DOM
       document.getElementById('secret-input').value = '';
       document.getElementById('gen-preview').value  = '';
-
-      const warnExpiry = document.getElementById('warn-expiry');
-      if (expiresAt) {
-        warnExpiry.style.display = '';
-        startCountdown(expiresAt, document.getElementById('countdown'));
-      } else {
-        warnExpiry.style.display = 'none';
-      }
 
     } catch (err) {
       if (err instanceof RangeError) {
@@ -230,19 +221,4 @@
     });
   }
 
-  // Countdown driven by server-issued expiresAt timestamp (F-14)
-  function startCountdown(expiresAt, el) {
-    const tick = () => {
-      const remaining = Math.ceil((expiresAt - Date.now()) / 1000);
-      if (remaining <= 0) {
-        el.textContent = 'expired';
-        return;
-      }
-      const m = Math.floor(remaining / 60);
-      const s = remaining % 60;
-      el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-      setTimeout(tick, 500);
-    };
-    tick();
-  }
 })();
