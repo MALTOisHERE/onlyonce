@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blink</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo-wrap">
+        <a href="/" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
+          <img src="/logo.png" alt="Blink" class="logo">
+          <span class="logo-text">Blink</span>
+        </a>
+      </div>
+      <p class="tagline">Share secrets that disappear. Once seen, forever gone.</p>
+    </header>
+
+    <main class="view-main">
+
+      <!-- Loading -->
+      <div class="view-state active" id="state-loading">
+        <div class="loading-box">
+          <div class="spinner"></div>
+          <p>Retrieving your secret…</p>
+        </div>
+      </div>
+
+      <!-- Reveal prompt -->
+      <div class="view-state" id="state-reveal">
+        <div class="reveal-card">
+          <div class="reveal-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h2>You have a secret message</h2>
+          <p>Someone shared a secure secret with you via Blink.<br>Once you reveal it, it will be <strong>permanently deleted</strong> from our servers. Refreshing this page will also destroy it.</p>
+          <button class="btn-primary" id="btn-reveal" style="max-width:260px;margin:0 auto;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Reveal Secret
+          </button>
+        </div>
+      </div>
+
+      <!-- Secret displayed -->
+      <div class="view-state" id="state-secret">
+        <div class="secret-card">
+          <div class="secret-card-header">
+            <div class="secret-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Secret revealed
+            </div>
+            <div class="timer-badge" id="timer-badge">
+              <div class="timer-dot"></div>
+              <span id="clear-timer">10:00</span>
+            </div>
+          </div>
+
+          <textarea id="secret-text" class="secret-output" readonly rows="4" spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off"></textarea>
+
+          <div class="secret-actions">
+            <button class="btn-copy-secret" id="btn-copy-secret">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy to Clipboard
+            </button>
+          </div>
+
+          <div class="deleted-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            This secret has been permanently deleted from our servers. The timer above auto-clears this page.
+          </div>
+        </div>
+      </div>
+
+      <!-- Expired / Not found -->
+      <div class="view-state" id="state-expired">
+        <div class="expired-card">
+          <div class="expired-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <h2 id="expired-title">Secret Not Found</h2>
+          <p id="expired-msg">This secret has already been viewed, expired, or never existed.<br>Ask the sender to create a new link.</p>
+          <a href="/" class="btn-home">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Create a new secret
+          </a>
+        </div>
+      </div>
+
+      <!-- Cleared -->
+      <div class="view-state" id="state-cleared">
+        <div class="cleared-card">
+          <div class="cleared-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2>Page cleared</h2>
+          <p>The secret has been wiped from this page for your safety.</p>
+          <a href="/" class="btn-home" style="margin-top:20px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            Create a new secret
+          </a>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="footer">
+      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext
+    </footer>
+  </div>
+
+  <script src="/view.js"></script>
+</body>
+</html>

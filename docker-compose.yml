@@ -1,0 +1,11 @@
+services:
+  blink:
+    build: .
+    container_name: blink
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOST=blink.malto.icu
