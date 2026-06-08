@@ -322,6 +322,10 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 /* ── Divider ── */
 .divider { height: 1px; background: var(--border); margin: 22px 0; }
 
+/* ── Option row (expiry toggle) ── */
+.option-row { margin-bottom: 14px; }
+.check-full { width: 100%; }
+
 /* ── Primary Button ── */
 .btn-primary {
   width: 100%;

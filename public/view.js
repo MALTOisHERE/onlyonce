@@ -70,7 +70,12 @@
 
     const timerEl = document.getElementById('clear-timer');
     const badge   = document.getElementById('timer-badge');
-    startClearTimer(timerEl, badge, expiresAt);
+    if (expiresAt) {
+      badge.style.display = '';
+      startClearTimer(timerEl, badge, expiresAt);
+    } else {
+      badge.style.display = 'none';
+    }
 
     // Defined once, not re-attached on repeated calls (F-19)
     const copyBtn = document.getElementById('btn-copy-secret');
@@ -105,7 +110,7 @@
       if (res.status === 410) {
         showExpired(
           'Link Expired',
-          'This link expired before it was opened (10-minute window). Ask the sender to create a fresh link.'
+          'This link has expired. Ask the sender to create a fresh link.'
         );
         return;
       }

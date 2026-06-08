@@ -100,10 +100,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
   },
 }));
 
-app.get('/logo.png', (req, res) => {
-  res.sendFile(path.join(__dirname, 'Malbot.png'));
-});
-
 // ── In-memory store ─────────────────────────────────────────────────────────
 const secrets     = new Map();
 const TTL_MS      = 10 * 60 * 1000;
@@ -113,7 +109,7 @@ const MAX_SECRETS = 10_000;
 const purge = setInterval(() => {
   const now = Date.now();
   for (const [id, s] of secrets) {
-    if (now > s.expiresAt) secrets.delete(id);
+    if (s.expiresAt !== null && now > s.expiresAt) secrets.delete(id);
   }
 }, 60_000);
 if (purge.unref) purge.unref();
@@ -133,7 +129,7 @@ app.post('/api/secret', createLimiter.middleware(), (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv } = body;
+  const { ciphertext, iv, expires } = body;
 
   if (
     typeof ciphertext !== 'string' || typeof iv !== 'string' ||
@@ -150,7 +146,7 @@ app.post('/api/secret', createLimiter.middleware(), (req, res) => {
   }
 
   const id        = crypto.randomUUID();
-  const expiresAt = Date.now() + TTL_MS;
+  const expiresAt = expires === true ? Date.now() + TTL_MS : null;
   secrets.set(id, { ciphertext, iv, expiresAt });
 
   res.status(201).json({ id, expiresAt });
@@ -169,7 +165,7 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     return res.status(404).json({ error: 'not_found' });
   }
 
-  if (Date.now() > secret.expiresAt) {
+  if (secret.expiresAt !== null && Date.now() > secret.expiresAt) {
     secrets.delete(id);
     return res.status(410).json({ error: 'expired' });
   }

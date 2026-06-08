@@ -142,11 +142,12 @@
 
     try {
       const { ciphertext, iv, key } = await encryptSecret(secret);
+      const expires = document.getElementById('opt-expires').checked;
 
       const res = await fetch('/api/secret', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ciphertext, iv }),
+        body:    JSON.stringify({ ciphertext, iv, expires }),
       });
 
       if (res.status === 429) {
@@ -169,8 +170,13 @@
       document.getElementById('secret-input').value = '';
       document.getElementById('gen-preview').value  = '';
 
-      // Use the server-issued expiresAt for an accurate countdown (F-14)
-      startCountdown(expiresAt, document.getElementById('countdown'));
+      const warnExpiry = document.getElementById('warn-expiry');
+      if (expiresAt) {
+        warnExpiry.style.display = '';
+        startCountdown(expiresAt, document.getElementById('countdown'));
+      } else {
+        warnExpiry.style.display = 'none';
+      }
 
     } catch (err) {
       if (err instanceof RangeError) {
