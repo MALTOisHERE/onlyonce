@@ -6,6 +6,7 @@
   tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => {
       const prevIndex = tabs.indexOf(document.querySelector('.tab.active'));
+      if (index === prevIndex) return;
       const dir = index > prevIndex ? 'slide-in-right' : 'slide-in-left';
 
       tabs.forEach(t => t.classList.remove('active'));
@@ -15,7 +16,9 @@
 
       tab.classList.add('active');
       const content = document.getElementById(`tab-${tab.dataset.tab}`);
-      content.classList.add('active', dir);
+      content.classList.add('active');
+      void content.offsetWidth; // force reflow so animation starts clean
+      content.classList.add(dir);
       hideResult();
     });
   });
