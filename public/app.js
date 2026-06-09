@@ -2,12 +2,20 @@
   const MAX_SECRET_BYTES = 10 * 1024; // 10 KB
 
   // ── Tab switching ──────────────────────────────────────────────────────────
-  document.querySelectorAll('.tab').forEach(tab => {
+  const tabs = [...document.querySelectorAll('.tab')];
+  tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const prevIndex = tabs.indexOf(document.querySelector('.tab.active'));
+      const dir = index > prevIndex ? 'slide-in-right' : 'slide-in-left';
+
+      tabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => {
+        c.classList.remove('active', 'slide-in-right', 'slide-in-left');
+      });
+
       tab.classList.add('active');
-      document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+      const content = document.getElementById(`tab-${tab.dataset.tab}`);
+      content.classList.add('active', dir);
       hideResult();
     });
   });

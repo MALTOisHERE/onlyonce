@@ -103,6 +103,15 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // ── In-memory store ─────────────────────────────────────────────────────────
 const secrets     = new Map();
 const MAX_SECRETS = 10_000;
+const TTL_MS      = 48 * 60 * 60 * 1000; // 48 hours
+
+const purge = setInterval(() => {
+  const now = Date.now();
+  for (const [id, s] of secrets) {
+    if (now > s.expiresAt) secrets.delete(id);
+  }
+}, 60_000);
+if (purge.unref) purge.unref();
 
 // ── Validators ──────────────────────────────────────────────────────────────
 const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -135,8 +144,9 @@ app.post('/api/secret', createLimiter.middleware(), (req, res) => {
     return res.status(503).json({ error: 'Server is at capacity. Try again shortly.' });
   }
 
-  const id = crypto.randomUUID();
-  secrets.set(id, { ciphertext, iv });
+  const id        = crypto.randomUUID();
+  const expiresAt = Date.now() + TTL_MS;
+  secrets.set(id, { ciphertext, iv, expiresAt });
 
   res.status(201).json({ id });
 });
@@ -152,6 +162,11 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   const secret = secrets.get(id);
   if (!secret) {
     return res.status(404).json({ error: 'not_found' });
+  }
+
+  if (Date.now() > secret.expiresAt) {
+    secrets.delete(id);
+    return res.status(410).json({ error: 'expired' });
   }
 
   // Consume the secret atomically before responding
