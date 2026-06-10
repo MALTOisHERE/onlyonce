@@ -159,6 +159,8 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     return res.status(400).json({ error: 'Invalid identifier.' });
   }
 
+  res.setHeader('Cache-Control', 'no-store');
+
   const secret = secrets.get(id);
   if (!secret) {
     return res.status(404).json({ error: 'not_found' });
