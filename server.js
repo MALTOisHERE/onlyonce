@@ -141,7 +141,8 @@ async function sendOTPEmail(to, otp) {
     to,
     subject: 'Your Blink verification code',
     html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px">
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px;text-align:center">
+        <img src="https://blink.malto.icu/logo.png" alt="Blink" style="width:52px;height:52px;margin:0 auto 12px;display:block">
         <h2 style="color:#61cf5a;margin:0 0 4px">Blink</h2>
         <p style="color:#7A8599;margin:0 0 28px;font-size:13px">Secure one-time secret sharing</p>
         <p style="margin:0 0 20px;font-size:15px">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
