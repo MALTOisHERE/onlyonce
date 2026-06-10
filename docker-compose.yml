@@ -9,3 +9,5 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - HOST=blink.malto.icu
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=Blink <noreply@malto.icu>

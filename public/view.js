@@ -65,29 +65,38 @@
     };
   }
 
-  async function revealSecret(id, keyB64) {
+  async function revealSecret(id, keyB64, otp = null) {
     try {
-      const res = await fetch(`/api/secret/${id}`);
+      const headers = {};
+      if (otp) headers['X-OTP'] = otp;
+      const res = await fetch(`/api/secret/${id}`, { headers });
 
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.error === 'otp_required') {
+          setState('state-otp');
+          setupOTP(id, keyB64);
+          return;
+        }
+        if (data.error === 'invalid_otp') {
+          setState('state-otp');
+          document.getElementById('otp-error').classList.remove('hidden');
+          document.getElementById('otp-input').value = '';
+          document.getElementById('otp-input').focus();
+          setupOTP(id, keyB64);
+          return;
+        }
+      }
       if (res.status === 404) {
-        showExpired(
-          'Secret Not Found',
-          'This secret has already been viewed, has expired, or the link is invalid. Ask the sender to create a new one.'
-        );
+        showExpired('Secret Not Found', 'This secret has already been viewed, has expired, or the link is invalid. Ask the sender to create a new one.');
         return;
       }
       if (res.status === 410) {
-        showExpired(
-          'Link Expired',
-          'This link has expired. Ask the sender to create a fresh link.'
-        );
+        showExpired('Link Expired', 'This link has expired. Ask the sender to create a fresh link.');
         return;
       }
       if (res.status === 429) {
-        showExpired(
-          'Too Many Requests',
-          'You have made too many requests. Please wait a moment and try again.'
-        );
+        showExpired('Too Many Requests', 'You have made too many requests. Please wait a moment and try again.');
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -95,16 +104,29 @@
       const { ciphertext, iv } = await res.json();
       const plaintext = await decryptSecret(ciphertext, iv, keyB64);
 
-      // Strip the key from the URL bar and browser history (F-06)
       history.replaceState(null, '', window.location.pathname);
-
       showSecret(plaintext);
     } catch (err) {
-      showExpired(
-        'Something Went Wrong',
-        'Could not retrieve or decrypt the secret. The link may be malformed or have been tampered with.'
-      );
+      showExpired('Something Went Wrong', 'Could not retrieve or decrypt the secret. The link may be malformed or have been tampered with.');
     }
+  }
+
+  function setupOTP(id, keyB64) {
+    const btn   = document.getElementById('btn-otp-submit');
+    const input = document.getElementById('otp-input');
+    input.focus();
+    const clone = btn.cloneNode(true); // remove any prior listeners
+    btn.parentNode.replaceChild(clone, btn);
+    clone.addEventListener('click', () => {
+      const otp = input.value.trim();
+      if (otp.length !== 6) return;
+      document.getElementById('otp-error').classList.add('hidden');
+      setState('state-loading');
+      revealSecret(id, keyB64, otp);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') clone.click();
+    }, { once: true });
   }
 
   function init() {

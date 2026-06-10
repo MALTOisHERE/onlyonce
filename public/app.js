@@ -153,22 +153,26 @@
 
     try {
       const { ciphertext, iv, key } = await encryptSecret(secret);
+      const recipientEmail = document.getElementById('recipient-email').value.trim();
+
+      const payload = { ciphertext, iv };
+      if (recipientEmail) payload.recipientEmail = recipientEmail;
 
       const res = await fetch('/api/secret', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ciphertext, iv }),
+        body:    JSON.stringify(payload),
       });
 
       if (res.status === 429) {
         showError('Too many requests. Please wait a moment and try again.');
         return;
       }
-      if (res.status === 503) {
-        showError('Server is at capacity right now. Please try again shortly.');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showError(data.error || 'Something went wrong. Please try again.');
         return;
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const { id } = await res.json();
 
@@ -176,9 +180,10 @@
       document.getElementById('link-output').value = viewUrl;
       document.getElementById('result').classList.remove('hidden');
 
-      // Clear plaintext from the input so it's not left in the DOM
-      document.getElementById('secret-input').value = '';
-      document.getElementById('gen-preview').value  = '';
+      // Clear plaintext and email from inputs
+      document.getElementById('secret-input').value  = '';
+      document.getElementById('gen-preview').value   = '';
+      document.getElementById('recipient-email').value = '';
 
     } catch (err) {
       if (err instanceof RangeError) {

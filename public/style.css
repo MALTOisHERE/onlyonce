@@ -332,6 +332,35 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .btn-secondary:hover { border-color: var(--border-hi); color: var(--text); background: var(--surface-3); }
 
+/* ── Email field ── */
+.email-field { margin-top: 20px; margin-bottom: 4px; }
+.email-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.email-input-wrap:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-dim);
+}
+.email-input-wrap svg { color: var(--text-dim); flex-shrink: 0; }
+.email-input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: .88rem;
+}
+.email-input-wrap input::placeholder { color: var(--text-dim); }
+.email-hint { font-size: .74rem; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+
 /* ── Divider ── */
 .divider { height: 1px; background: var(--border); margin: 22px 0; }
 
@@ -633,6 +662,52 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   line-height: 1.5;
 }
 .deleted-notice svg { color: var(--green); flex-shrink: 0; }
+
+/* OTP state */
+.otp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 44px 36px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.otp-icon {
+  width: 68px;
+  height: 68px;
+  background: var(--green-dim);
+  border: 1px solid rgba(97,207,90,.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 22px;
+  color: var(--green);
+}
+.otp-card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 10px; }
+.otp-card p  { color: var(--text-muted); font-size: .88rem; margin-bottom: 24px; line-height: 1.65; max-width: 340px; }
+.otp-input {
+  width: 100%;
+  max-width: 220px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 10px;
+  text-align: center;
+  padding: 14px 10px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  margin-bottom: 12px;
+}
+.otp-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
+.otp-error { font-size: .82rem; color: var(--danger); margin-bottom: 12px; }
 
 /* Expired / Error state */
 .expired-card {

@@ -1,8 +1,9 @@
 'use strict';
 
-const express = require('express');
-const crypto  = require('crypto');
-const path    = require('path');
+const express      = require('express');
+const crypto       = require('crypto');
+const path         = require('path');
+const { Resend }   = require('resend');
 
 const app = express();
 
@@ -116,19 +117,40 @@ if (purge.unref) purge.unref();
 // ── Validators ──────────────────────────────────────────────────────────────
 const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const B64_RE   = /^[A-Za-z0-9+/]+=*$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // AES-GCM IV must be 12 raw bytes → exactly 16 base-64 chars
 const IV_B64_LEN = 16;
 // Max plaintext 10 KB + 16-byte GCM tag → ≤ 13 720 base-64 chars
 const MAX_CT_LEN = 13_720;
 
+// ── Email (Resend) ───────────────────────────────────────────────────────────
+async function sendOTPEmail(to, otp) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const { error } = await resend.emails.send({
+    from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
+    to,
+    subject: 'Your Blink verification code',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px">
+        <h2 style="color:#61cf5a;margin:0 0 4px">Blink</h2>
+        <p style="color:#7A8599;margin:0 0 28px;font-size:13px">Secure one-time secret sharing</p>
+        <p style="margin:0 0 20px;font-size:15px">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
+        <div style="font-size:40px;font-weight:700;letter-spacing:10px;text-align:center;padding:28px 24px;background:#131820;border-radius:10px;color:#61cf5a;font-family:monospace">${otp}</div>
+        <p style="margin:24px 0 0;font-size:12px;color:#4A5468">This code can only be used once. If you were not expecting this, ignore this email.</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(error.message);
+}
+
 // ── POST /api/secret ────────────────────────────────────────────────────────
-app.post('/api/secret', createLimiter.middleware(), (req, res) => {
+app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
   const body = req.body;
   if (!body || typeof body !== 'object') {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv } = body;
+  const { ciphertext, iv, recipientEmail } = body;
 
   if (
     typeof ciphertext !== 'string' || typeof iv !== 'string' ||
@@ -144,9 +166,27 @@ app.post('/api/secret', createLimiter.middleware(), (req, res) => {
     return res.status(503).json({ error: 'Server is at capacity. Try again shortly.' });
   }
 
+  let otpHash = null;
+  if (recipientEmail !== undefined) {
+    if (!process.env.RESEND_API_KEY) {
+      return res.status(503).json({ error: 'Email verification is not configured on this server.' });
+    }
+    if (typeof recipientEmail !== 'string' || !EMAIL_RE.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Invalid email address.' });
+    }
+    const otp = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+    otpHash   = crypto.createHash('sha256').update(otp).digest('hex');
+    try {
+      await sendOTPEmail(recipientEmail, otp);
+    } catch (err) {
+      console.error('[email]', err.message);
+      return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
+    }
+  }
+
   const id        = crypto.randomUUID();
   const expiresAt = Date.now() + TTL_MS;
-  secrets.set(id, { ciphertext, iv, expiresAt });
+  secrets.set(id, { ciphertext, iv, expiresAt, otpHash });
 
   res.status(201).json({ id });
 });
@@ -169,6 +209,25 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   if (Date.now() > secret.expiresAt) {
     secrets.delete(id);
     return res.status(410).json({ error: 'expired' });
+  }
+
+  // OTP verification
+  if (secret.otpHash) {
+    const otp = (req.headers['x-otp'] || '').trim();
+    if (!otp) {
+      return res.status(403).json({ error: 'otp_required' });
+    }
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(403).json({ error: 'invalid_otp' });
+    }
+    const inputHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const valid     = crypto.timingSafeEqual(
+      Buffer.from(secret.otpHash, 'hex'),
+      Buffer.from(inputHash,      'hex')
+    );
+    if (!valid) {
+      return res.status(403).json({ error: 'invalid_otp' });
+    }
   }
 
   // Consume the secret atomically before responding
