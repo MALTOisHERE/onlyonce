@@ -11,3 +11,6 @@ services:
       - HOST=blink.malto.icu
       - RESEND_API_KEY=${RESEND_API_KEY}
       - EMAIL_FROM=Blink <noreply@malto.icu>
+      - STATS_FILE=/data/stats.json
+    volumes:
+      - /var/www/blink/data:/data

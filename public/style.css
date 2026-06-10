@@ -522,6 +522,54 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   text-align: center;
 }
 
+/* ── Stat card ── */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--surface) 0%, rgba(97,207,90,.04) 100%);
+  border: 1px solid rgba(97,207,90,.22);
+  border-radius: var(--radius);
+  padding: 32px 24px 28px;
+  text-align: center;
+  margin-top: 12px;
+  animation: fadeUp .4s ease both;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 55% at 50% 0%, rgba(97,207,90,.09), transparent);
+  pointer-events: none;
+}
+.stat-icon {
+  color: var(--green);
+  opacity: .55;
+  margin-bottom: 14px;
+}
+.stat-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3.6rem;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.stat-label {
+  font-size: .9rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  letter-spacing: .01em;
+}
+.stat-sub {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: .72rem;
+  color: var(--text-dim);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
 /* ── Footer ── */
 .footer {
   text-align: center;

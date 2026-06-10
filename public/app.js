@@ -237,4 +237,25 @@
     });
   }
 
+  // ── Secrets count ──────────────────────────────────────────────────────────
+  fetch('/api/stats')
+    .then(r => r.json())
+    .then(({ secretsCreated }) => {
+      if (secretsCreated > 0) {
+        document.getElementById('stat-card').style.display = '';
+        const el = document.getElementById('secrets-count');
+        const duration = 1200;
+        const start = performance.now();
+        const from = Math.max(0, secretsCreated - Math.min(secretsCreated, 80));
+        const step = ts => {
+          const p = Math.min((ts - start) / duration, 1);
+          const ease = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(from + (secretsCreated - from) * ease).toLocaleString();
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+    })
+    .catch(() => {});
+
 })();

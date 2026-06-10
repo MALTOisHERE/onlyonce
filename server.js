@@ -2,6 +2,7 @@
 
 const express      = require('express');
 const crypto       = require('crypto');
+const fs           = require('fs');
 const path         = require('path');
 const { Resend }   = require('resend');
 
@@ -119,9 +120,44 @@ const TTL_MS      = 48 * 60 * 60 * 1000; // 48 hours
 const purge = setInterval(() => {
   const now = Date.now();
   for (const [id, s] of secrets) {
-    if (now > s.expiresAt) secrets.delete(id);
+    if (now > s.expiresAt) {
+      secrets.delete(id);
+      stats.secretsExpired++;
+    }
   }
 }, 60_000);
+
+// ── Statistics ───────────────────────────────────────────────────────────────
+const STATS_FILE = process.env.STATS_FILE || path.join(__dirname, 'data', 'stats.json');
+
+const STATS_DEFAULTS = {
+  secretsCreated:      0,
+  secretsWithEmail:    0,
+  emailsSent:          0,
+  secretsRevealed:     0,
+  secretsExpired:      0,
+  secretsBruteForced:  0,
+  otpFailures:         0,
+};
+
+let stats = { ...STATS_DEFAULTS };
+
+try {
+  fs.mkdirSync(path.dirname(STATS_FILE), { recursive: true });
+  const raw = fs.readFileSync(STATS_FILE, 'utf8');
+  stats = { ...STATS_DEFAULTS, ...JSON.parse(raw) };
+} catch {}
+
+function saveStats() {
+  try {
+    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+  } catch (err) {
+    console.error('[stats]', err.message);
+  }
+}
+
+const statsPersist = setInterval(saveStats, 60_000);
+if (statsPersist.unref) statsPersist.unref();
 if (purge.unref) purge.unref();
 
 // ── Validators ──────────────────────────────────────────────────────────────
@@ -203,6 +239,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     otpHash   = crypto.createHash('sha256').update(otp).digest('hex');
     try {
       await sendOTPEmail(recipientEmail, otp);
+      stats.emailsSent++;
     } catch (err) {
       console.error('[email]', err.message);
       return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
@@ -212,6 +249,9 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
   const id        = crypto.randomUUID();
   const expiresAt = Date.now() + TTL_MS;
   secrets.set(id, { ciphertext, iv, expiresAt, otpHash, otpAttempts: 0 });
+
+  stats.secretsCreated++;
+  if (otpHash) stats.secretsWithEmail++;
 
   res.status(201).json({ id });
 });
@@ -252,8 +292,10 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     );
     if (!valid) {
       secret.otpAttempts++;
+      stats.otpFailures++;
       if (secret.otpAttempts >= 5) {
         secrets.delete(id);
+        stats.secretsBruteForced++;
         return res.status(410).json({ error: 'too_many_attempts' });
       }
       return res.status(403).json({ error: 'invalid_otp', attemptsLeft: 5 - secret.otpAttempts });
@@ -263,7 +305,14 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   // Consume the secret atomically before responding
   const payload = { ciphertext: secret.ciphertext, iv: secret.iv };
   secrets.delete(id);
+  stats.secretsRevealed++;
   res.json(payload);
+});
+
+// ── GET /api/stats ───────────────────────────────────────────────────────────
+app.get('/api/stats', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ secretsCreated: stats.secretsCreated });
 });
 
 // ── View page ────────────────────────────────────────────────────────────────
@@ -294,6 +343,7 @@ const server = app.listen(PORT, () => {
 // ── Graceful shutdown ────────────────────────────────────────────────────────
 function shutdown(signal) {
   console.log(`${signal} — shutting down`);
+  saveStats();
   server.close(() => {
     secrets.clear();
     process.exit(0);
