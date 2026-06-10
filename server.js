@@ -142,9 +142,13 @@ async function sendOTPEmail(to, otp) {
     subject: 'Your Blink verification code',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px;text-align:center">
-        <img src="https://blink.malto.icu/logo.png" alt="Blink" style="width:52px;height:52px;margin:0 auto 12px;display:block">
-        <h2 style="color:#61cf5a;margin:0 0 4px">Blink</h2>
-        <p style="color:#7A8599;margin:0 0 28px;font-size:13px">Secure one-time secret sharing</p>
+        <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:28px">
+          <img src="https://blink.malto.icu/logo.png" alt="Blink" style="width:44px;height:44px;display:block">
+          <div style="text-align:left">
+            <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
+            <div style="color:#7A8599;font-size:11px">by MALTO</div>
+          </div>
+        </div>
         <p style="margin:0 0 20px;font-size:15px">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
         <div style="font-size:40px;font-weight:700;letter-spacing:10px;text-align:center;padding:28px 24px;background:#131820;border-radius:10px;color:#61cf5a;font-family:monospace">${otp}</div>
         <p style="margin:24px 0 0;font-size:12px;color:#4A5468">This code can only be used once. If you were not expecting this, ignore this email.</p>
