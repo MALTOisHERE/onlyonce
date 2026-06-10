@@ -65,18 +65,27 @@ class RateLimiter {
     if (t.unref) t.unref();
   }
 
+  // Returns retry-after seconds if limited, 0 if allowed
+  check(ip) {
+    const key = ip || '0.0.0.0';
+    const now = Date.now();
+    let e = this.store.get(key);
+    if (!e || now >= e.resetAt) {
+      e = { count: 0, resetAt: now + this.windowMs };
+      this.store.set(key, e);
+    }
+    e.count++;
+    if (e.count > this.max) {
+      return Math.ceil((e.resetAt - now) / 1000);
+    }
+    return 0;
+  }
+
   middleware() {
     return (req, res, next) => {
-      const key = req.ip || '0.0.0.0';
-      const now = Date.now();
-      let e = this.store.get(key);
-      if (!e || now >= e.resetAt) {
-        e = { count: 0, resetAt: now + this.windowMs };
-        this.store.set(key, e);
-      }
-      e.count++;
-      if (e.count > this.max) {
-        res.setHeader('Retry-After', String(Math.ceil((e.resetAt - now) / 1000)));
+      const retryAfter = this.check(req.ip);
+      if (retryAfter > 0) {
+        res.setHeader('Retry-After', String(retryAfter));
         return res.status(429).json({ error: 'Too many requests. Please slow down.' });
       }
       next();
@@ -84,8 +93,9 @@ class RateLimiter {
   }
 }
 
-const createLimiter = new RateLimiter(60_000, 10);  // 10 creates / min per IP
-const readLimiter   = new RateLimiter(60_000, 30);  // 30 reads   / min per IP
+const createLimiter = new RateLimiter(60_000,      10);  // 10 creates  / min  per IP
+const readLimiter   = new RateLimiter(60_000,      30);  // 30 reads    / min  per IP
+const emailLimiter  = new RateLimiter(3_600_000,    3);  //  3 OTP emails / hour per IP
 
 // ── Body parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '16kb', strict: true }));
@@ -174,6 +184,12 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     if (typeof recipientEmail !== 'string' || !EMAIL_RE.test(recipientEmail)) {
       return res.status(400).json({ error: 'Invalid email address.' });
     }
+    const emailRetryAfter = emailLimiter.check(req.ip);
+    if (emailRetryAfter > 0) {
+      res.setHeader('Retry-After', String(emailRetryAfter));
+      return res.status(429).json({ error: 'Too many verification emails. Try again in an hour.' });
+    }
+
     const otp = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     otpHash   = crypto.createHash('sha256').update(otp).digest('hex');
     try {
@@ -186,7 +202,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
 
   const id        = crypto.randomUUID();
   const expiresAt = Date.now() + TTL_MS;
-  secrets.set(id, { ciphertext, iv, expiresAt, otpHash });
+  secrets.set(id, { ciphertext, iv, expiresAt, otpHash, otpAttempts: 0 });
 
   res.status(201).json({ id });
 });
@@ -226,7 +242,12 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
       Buffer.from(inputHash,      'hex')
     );
     if (!valid) {
-      return res.status(403).json({ error: 'invalid_otp' });
+      secret.otpAttempts++;
+      if (secret.otpAttempts >= 5) {
+        secrets.delete(id);
+        return res.status(410).json({ error: 'too_many_attempts' });
+      }
+      return res.status(403).json({ error: 'invalid_otp', attemptsLeft: 5 - secret.otpAttempts });
     }
   }
 

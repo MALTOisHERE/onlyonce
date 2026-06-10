@@ -80,10 +80,21 @@
         }
         if (data.error === 'invalid_otp') {
           setState('state-otp');
-          document.getElementById('otp-error').classList.remove('hidden');
+          const errEl = document.getElementById('otp-error');
+          errEl.textContent = data.attemptsLeft === 1
+            ? 'Invalid code. 1 attempt remaining.'
+            : `Invalid code. ${data.attemptsLeft} attempts remaining.`;
+          errEl.classList.remove('hidden');
           document.getElementById('otp-input').value = '';
           document.getElementById('otp-input').focus();
           setupOTP(id, keyB64);
+          return;
+        }
+      }
+      if (res.status === 410) {
+        const data = await res.json().catch(() => ({}));
+        if (data.error === 'too_many_attempts') {
+          showExpired('Secret Destroyed', 'Too many incorrect codes. The secret has been permanently deleted for security.');
           return;
         }
       }
