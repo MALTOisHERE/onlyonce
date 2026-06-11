@@ -1,39 +1,10 @@
 (() => {
-  // RFC 4122 UUID v4 pattern
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  // AES-GCM IV must decode to exactly 12 bytes
-  const IV_DECODED_LEN = 12;
+  const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const K1_B64_RE = /^[A-Za-z0-9+/]{44}$/;
 
   function setState(id) {
     document.querySelectorAll('.view-state').forEach(el => el.classList.remove('active'));
     document.getElementById(id).classList.add('active');
-  }
-
-  // Safe base64 decode — throws on invalid input (F-08)
-  function fromB64(str) {
-    try {
-      return Uint8Array.from(atob(decodeURIComponent(str)), c => c.charCodeAt(0));
-    } catch {
-      throw new TypeError('Malformed base-64 data.');
-    }
-  }
-
-  async function decryptSecret(ciphertextB64, ivB64, keyB64) {
-    const ivBytes  = fromB64(ivB64);
-    const keyBytes = fromB64(keyB64);
-    const ctBytes  = fromB64(ciphertextB64);
-
-    if (ivBytes.length !== IV_DECODED_LEN) {
-      throw new TypeError(`Invalid IV length: expected ${IV_DECODED_LEN}, got ${ivBytes.length}.`);
-    }
-
-    const key = await crypto.subtle.importKey(
-      'raw', keyBytes, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
-    );
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: ivBytes }, key, ctBytes
-    );
-    return new TextDecoder().decode(decrypted);
   }
 
   function showExpired(title, msg) {
@@ -65,9 +36,9 @@
     };
   }
 
-  async function revealSecret(id, keyB64, otp = null) {
+  async function revealSecret(id, k1B64, otp = null) {
     try {
-      const headers = {};
+      const headers = { 'X-Key': k1B64 };
       if (otp) headers['X-OTP'] = otp;
       const res = await fetch(`/api/secret/${id}`, { headers });
 
@@ -75,7 +46,7 @@
         const data = await res.json();
         if (data.error === 'otp_required') {
           setState('state-otp');
-          setupOTP(id, keyB64);
+          setupOTP(id, k1B64);
           return;
         }
         if (data.error === 'invalid_otp') {
@@ -87,14 +58,7 @@
           errEl.classList.remove('hidden');
           document.getElementById('otp-input').value = '';
           document.getElementById('otp-input').focus();
-          setupOTP(id, keyB64);
-          return;
-        }
-      }
-      if (res.status === 410) {
-        const data = await res.json().catch(() => ({}));
-        if (data.error === 'too_many_attempts') {
-          showExpired('Secret Destroyed', 'Too many incorrect codes. The secret has been permanently deleted for security.');
+          setupOTP(id, k1B64);
           return;
         }
       }
@@ -103,7 +67,12 @@
         return;
       }
       if (res.status === 410) {
-        showExpired('Link Expired', 'This link has expired. Ask the sender to create a fresh link.');
+        const data = await res.json().catch(() => ({}));
+        if (data.error === 'too_many_attempts') {
+          showExpired('Secret Destroyed', 'Too many incorrect codes. The secret has been permanently deleted for security.');
+        } else {
+          showExpired('Link Expired', 'This link has expired. Ask the sender to create a fresh link.');
+        }
         return;
       }
       if (res.status === 429) {
@@ -112,28 +81,25 @@
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const { ciphertext, iv } = await res.json();
-      const plaintext = await decryptSecret(ciphertext, iv, keyB64);
-
-      history.replaceState(null, '', window.location.pathname);
+      const { plaintext } = await res.json();
       showSecret(plaintext);
     } catch (err) {
       showExpired('Something Went Wrong', 'Could not retrieve or decrypt the secret. The link may be malformed or have been tampered with.');
     }
   }
 
-  function setupOTP(id, keyB64) {
+  function setupOTP(id, k1B64) {
     const btn   = document.getElementById('btn-otp-submit');
     const input = document.getElementById('otp-input');
     input.focus();
-    const clone = btn.cloneNode(true); // remove any prior listeners
+    const clone = btn.cloneNode(true);
     btn.parentNode.replaceChild(clone, btn);
     clone.addEventListener('click', () => {
       const otp = input.value.trim();
       if (otp.length !== 6) return;
       document.getElementById('otp-error').classList.add('hidden');
       setState('state-loading');
-      revealSecret(id, keyB64, otp);
+      revealSecret(id, k1B64, otp);
     });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') clone.click();
@@ -143,16 +109,19 @@
   function init() {
     const pathParts = window.location.pathname.split('/');
     const id        = pathParts[pathParts.length - 1];
-    const keyB64    = window.location.hash.slice(1);
+    const k1B64     = decodeURIComponent(window.location.hash.slice(1));
 
-    // Validate UUID format before hitting the server (F-05)
+    // Remove K1 from URL immediately — before any async work — so it never
+    // sits in browser history after this page load.
+    history.replaceState(null, '', window.location.pathname);
+
     if (!id || !UUID_RE.test(id)) {
       showExpired('Invalid Link', 'The link format is invalid.');
       return;
     }
 
-    if (!keyB64) {
-      showExpired('Invalid Link', 'This link is missing the decryption key.');
+    if (!k1B64 || !K1_B64_RE.test(k1B64)) {
+      showExpired('Invalid Link', 'This link is missing or has a corrupted key.');
       return;
     }
 
@@ -160,7 +129,7 @@
 
     document.getElementById('btn-reveal').addEventListener('click', () => {
       setState('state-loading');
-      revealSecret(id, keyB64);
+      revealSecret(id, k1B64);
     }, { once: true });
   }
 

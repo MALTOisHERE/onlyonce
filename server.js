@@ -18,14 +18,16 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection',           '0');
   res.setHeader('Referrer-Policy',            'no-referrer');
   res.setHeader('Permissions-Policy',         'camera=(), microphone=(), geolocation=(), payment=()');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Opener-Policy',   'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'none'",
       "script-src 'self'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src https://fonts.gstatic.com",
+      "style-src 'self'",
+      "font-src 'none'",
       "img-src 'self' data:",
       "connect-src 'self'",
       "frame-ancestors 'none'",
@@ -117,16 +119,6 @@ const secrets     = new Map();
 const MAX_SECRETS = 10_000;
 const TTL_MS      = 48 * 60 * 60 * 1000; // 48 hours
 
-const purge = setInterval(() => {
-  const now = Date.now();
-  for (const [id, s] of secrets) {
-    if (now > s.expiresAt) {
-      secrets.delete(id);
-      stats.secretsExpired++;
-    }
-  }
-}, 60_000);
-
 // ── Statistics ───────────────────────────────────────────────────────────────
 const STATS_FILE = process.env.STATS_FILE || path.join(__dirname, 'data', 'stats.json');
 
@@ -150,29 +142,80 @@ try {
 
 function saveStats() {
   try {
-    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
+    const tmp = STATS_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(stats, null, 2));
+    fs.renameSync(tmp, STATS_FILE);
   } catch (err) {
     console.error('[stats]', err.message);
   }
 }
 
+// Purge interval declared after stats so stats.secretsExpired is always initialised
+const purge = setInterval(() => {
+  const now = Date.now();
+  for (const [id, s] of secrets) {
+    if (now > s.expiresAt) {
+      secrets.delete(id);
+      stats.secretsExpired++;
+    }
+  }
+}, 60_000);
+
 const statsPersist = setInterval(saveStats, 60_000);
-if (statsPersist.unref) statsPersist.unref();
 if (purge.unref) purge.unref();
+if (statsPersist.unref) statsPersist.unref();
 
 // ── Validators ──────────────────────────────────────────────────────────────
 const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const B64_RE   = /^[A-Za-z0-9+/]+=*$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 // AES-GCM IV must be 12 raw bytes → exactly 16 base-64 chars
-const IV_B64_LEN = 16;
+const IV_B64_LEN  = 16;
+// AES-256 key half (32 bytes) → exactly 44 base-64 chars
+const K2_B64_LEN  = 44;
+// AES-GCM output is always at least 16-byte auth tag → min 24 base-64 chars
+const MIN_CT_LEN  = 24;
 // Max plaintext 10 KB + 16-byte GCM tag → ≤ 13 720 base-64 chars
-const MAX_CT_LEN = 13_720;
+const MAX_CT_LEN  = 13_720;
+
+// ── Server secret (K3) ───────────────────────────────────────────────────────
+// K3 never leaves the server. Combined with K1 (URL) and K2 (memory) via HMAC
+// so that each secret gets a unique K3 contribution tied to its ID.
+const K3 = process.env.SECRET_KEY;
+
+function deriveK3Mask(id) {
+  return crypto.createHmac('sha256', K3).update(id).digest();
+}
+
+// ── Email client ─────────────────────────────────────────────────────────────
+const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// ── Server-side decrypt ──────────────────────────────────────────────────────
+// K = K1 XOR K2. K1 comes from client (URL fragment), K2 stored masked with K3.
+// K2_stored = K2 XOR HMAC(K3, id) at creation time.
+// At reveal: key = K1 XOR K2_stored XOR HMAC(K3, id) = K1 XOR K2.
+// Web Crypto AES-GCM output = ciphertext || 16-byte auth tag.
+function serverDecrypt(ciphertextB64, ivB64, k1B64, k2StoredB64, id) {
+  const ct       = Buffer.from(ciphertextB64, 'base64');
+  const iv       = Buffer.from(ivB64,         'base64');
+  const k1       = Buffer.from(k1B64,         'base64');
+  const k2Stored = Buffer.from(k2StoredB64,   'base64');
+  const mask     = K3 ? deriveK3Mask(id) : Buffer.alloc(32);
+
+  const key = Buffer.alloc(32);
+  for (let i = 0; i < 32; i++) key[i] = k1[i] ^ k2Stored[i] ^ mask[i];
+
+  const authTag    = ct.subarray(ct.length - 16);
+  const ciphertext = ct.subarray(0, ct.length - 16);
+
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+}
 
 // ── Email (Resend) ───────────────────────────────────────────────────────────
 async function sendOTPEmail(to, otp) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const { error } = await resend.emails.send({
+  const { error } = await resendClient.emails.send({
     from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
     to,
     subject: 'Your Blink verification code',
@@ -205,13 +248,15 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv, recipientEmail } = body;
+  const { ciphertext, iv, k2, recipientEmail } = body;
 
   if (
-    typeof ciphertext !== 'string' || typeof iv !== 'string' ||
-    !ciphertext || !iv ||
-    !B64_RE.test(iv) || !B64_RE.test(ciphertext) ||
+    typeof ciphertext !== 'string' || typeof iv !== 'string' || typeof k2 !== 'string' ||
+    !ciphertext || !iv || !k2 ||
+    !B64_RE.test(iv) || !B64_RE.test(ciphertext) || !B64_RE.test(k2) ||
     iv.length !== IV_B64_LEN ||
+    k2.length !== K2_B64_LEN ||
+    ciphertext.length < MIN_CT_LEN ||
     ciphertext.length > MAX_CT_LEN
   ) {
     return res.status(400).json({ error: 'Invalid payload.' });
@@ -223,7 +268,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
 
   let otpHash = null;
   if (recipientEmail !== undefined) {
-    if (!process.env.RESEND_API_KEY) {
+    if (!resendClient) {
       return res.status(503).json({ error: 'Email verification is not configured on this server.' });
     }
     if (typeof recipientEmail !== 'string' || !EMAIL_RE.test(recipientEmail)) {
@@ -248,7 +293,18 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
 
   const id        = crypto.randomUUID();
   const expiresAt = Date.now() + TTL_MS;
-  secrets.set(id, { ciphertext, iv, expiresAt, otpHash, otpAttempts: 0 });
+
+  // Apply K3 mask to K2 before storage: k2Stored = K2 XOR HMAC(K3, id)
+  let k2Stored = k2;
+  if (K3) {
+    const mask     = deriveK3Mask(id);
+    const k2Buf    = Buffer.from(k2, 'base64');
+    const maskedBuf = Buffer.alloc(32);
+    for (let i = 0; i < 32; i++) maskedBuf[i] = k2Buf[i] ^ mask[i];
+    k2Stored = maskedBuf.toString('base64');
+  }
+
+  secrets.set(id, { ciphertext, iv, k2: k2Stored, expiresAt, otpHash, otpAttempts: 0 });
 
   stats.secretsCreated++;
   if (otpHash) stats.secretsWithEmail++;
@@ -262,6 +318,11 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
 
   if (!UUID_RE.test(id)) {
     return res.status(400).json({ error: 'Invalid identifier.' });
+  }
+
+  const k1B64 = (req.headers['x-key'] || '').trim();
+  if (!k1B64 || k1B64.length !== K2_B64_LEN || !B64_RE.test(k1B64)) {
+    return res.status(400).json({ error: 'Missing or invalid key.' });
   }
 
   res.setHeader('Cache-Control', 'no-store');
@@ -302,11 +363,17 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     }
   }
 
-  // Consume the secret atomically before responding
-  const payload = { ciphertext: secret.ciphertext, iv: secret.iv };
+  // Reconstruct key, decrypt, consume secret atomically
+  let plaintext;
+  try {
+    plaintext = serverDecrypt(secret.ciphertext, secret.iv, k1B64, secret.k2, id);
+  } catch {
+    return res.status(400).json({ error: 'Decryption failed. The link may be corrupted.' });
+  }
+
   secrets.delete(id);
   stats.secretsRevealed++;
-  res.json(payload);
+  res.json({ plaintext });
 });
 
 // ── GET /api/stats ───────────────────────────────────────────────────────────
@@ -353,3 +420,14 @@ function shutdown(signal) {
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT',  () => shutdown('SIGINT'));
+
+// ── Startup checks ────────────────────────────────────────────────────────────
+if (!process.env.SECRET_KEY) {
+  console.warn('[warn] SECRET_KEY not set — K3 HMAC binding is disabled (K2 stored unmasked)');
+}
+if (!process.env.RESEND_API_KEY) {
+  console.warn('[warn] RESEND_API_KEY not set — email OTP feature is disabled');
+}
+if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
+  console.warn('[warn] HOST not set — HTTPS redirect will not work in production');
+}

@@ -118,11 +118,19 @@
     );
     const iv           = crypto.getRandomValues(new Uint8Array(12));
     const ciphertextBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-    const rawKey        = await crypto.subtle.exportKey('raw', key);
+    const rawKey        = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+
+    // Split key: K = K1 XOR K2. K1 goes in URL fragment, K2 goes to server.
+    // Neither half alone can decrypt — server must participate in every reveal.
+    const k1 = crypto.getRandomValues(new Uint8Array(32));
+    const k2 = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) k2[i] = rawKey[i] ^ k1[i];
+
     return {
       ciphertext: toB64(new Uint8Array(ciphertextBuf)),
       iv:         toB64(iv),
-      key:        toB64(new Uint8Array(rawKey)),
+      k1:         toB64(k1),
+      k2:         toB64(k2),
     };
   }
 
@@ -135,7 +143,7 @@
     let secret = '';
 
     if (activeTab === 'enter') {
-      secret = document.getElementById('secret-input').value.trim();
+      secret = document.getElementById('secret-input').value;
     } else {
       secret = document.getElementById('gen-preview').value.trim();
     }
@@ -152,10 +160,10 @@
     btnCreate.textContent = 'Encrypting…';
 
     try {
-      const { ciphertext, iv, key } = await encryptSecret(secret);
+      const { ciphertext, iv, k1, k2 } = await encryptSecret(secret);
       const recipientEmail = document.getElementById('recipient-email').value.trim();
 
-      const payload = { ciphertext, iv };
+      const payload = { ciphertext, iv, k2 };
       if (recipientEmail) payload.recipientEmail = recipientEmail;
 
       const res = await fetch('/api/secret', {
@@ -176,7 +184,7 @@
 
       const { id } = await res.json();
 
-      const viewUrl = `${window.location.origin}/view/${id}#${encodeURIComponent(key)}`;
+      const viewUrl = `${window.location.origin}/view/${id}#${encodeURIComponent(k1)}`;
       document.getElementById('link-output').value = viewUrl;
       document.getElementById('result').classList.remove('hidden');
 
@@ -242,7 +250,7 @@
     .then(r => r.json())
     .then(({ secretsCreated }) => {
       if (secretsCreated > 0) {
-        document.getElementById('stat-card').style.display = '';
+        document.getElementById('stat-card').classList.remove('hidden');
         const el = document.getElementById('secrets-count');
         const duration = 1200;
         const start = performance.now();

@@ -11,7 +11,7 @@
   <div class="app">
     <header class="header">
       <div class="logo-wrap">
-        <a href="/" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
+        <a href="/" class="logo-wrap-link">
           <img src="/logo.png" alt="Blink" class="logo">
           <div>
             <span class="logo-text">Blink</span>
@@ -40,7 +40,7 @@
           </div>
           <h2>You have a secret message</h2>
           <p>Someone shared a secure secret with you via Blink.<br>Once you reveal it, it will be <strong>permanently deleted</strong> from our servers.</p>
-          <button class="btn-primary" id="btn-reveal" style="max-width:260px;margin:0 auto;">
+          <button class="btn-primary btn-reveal-centered" id="btn-reveal">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             Reveal Secret
           </button>
@@ -80,10 +80,10 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           </div>
           <h2>Check your email</h2>
-          <p>A 6-digit verification code was sent to you. Enter it below to reveal the secret.<br><span style="font-size:.82rem;color:var(--text-dim)">Can't find it? Check your spam or junk folder.</span></p>
+          <p>A 6-digit verification code was sent to you. Enter it below to reveal the secret.<br><span class="otp-spam-hint">Can't find it? Check your spam or junk folder.</span></p>
           <input type="text" id="otp-input" class="otp-input" maxlength="6" placeholder="000000" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" spellcheck="false">
           <p class="otp-error hidden" id="otp-error">Invalid code. Please try again.</p>
-          <button class="btn-primary" id="btn-otp-submit" style="margin-top:8px">
+          <button class="btn-primary" id="btn-otp-submit">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Verify Code
           </button>

@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -29,7 +27,7 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(97,207,90,.07), transparent);
   color: var(--text);
@@ -125,7 +123,7 @@ body {
   border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .85rem;
   font-weight: 500;
   cursor: pointer;
@@ -163,7 +161,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: .9rem;
   padding: 12px 14px;
   resize: none;
@@ -176,7 +174,7 @@ body {
   box-shadow: 0 0 0 3px var(--green-dim);
 }
 .field textarea::placeholder,
-.field input::placeholder { color: var(--text-dim); font-family: 'Inter', sans-serif; }
+.field input::placeholder { color: var(--text-dim); font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 
 /* ── Generator ── */
 .gen-preview-wrap {
@@ -186,7 +184,7 @@ body {
 }
 .gen-preview-wrap input {
   flex: 1;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: .9rem;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -230,7 +228,7 @@ body {
   letter-spacing: .7px;
   margin-bottom: 10px;
 }
-.slider-field label span { color: var(--green); font-family: 'JetBrains Mono', monospace; }
+.slider-field label span { color: var(--green); font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace; }
 input[type="range"] {
   width: 100%;
   -webkit-appearance: none;
@@ -323,7 +321,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .87rem;
   font-weight: 500;
   cursor: pointer;
@@ -355,7 +353,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: none;
   outline: none;
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .88rem;
 }
 .email-input-wrap input::placeholder { color: var(--text-dim); }
@@ -377,7 +375,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: none;
   border-radius: var(--radius-sm);
   color: #000;
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .95rem;
   font-weight: 700;
   cursor: pointer;
@@ -440,7 +438,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: .78rem;
   padding: 11px 13px;
   outline: none;
@@ -457,7 +455,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: none;
   border-radius: var(--radius-sm);
   color: #000;
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .84rem;
   font-weight: 700;
   cursor: pointer;
@@ -547,7 +545,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   margin-bottom: 14px;
 }
 .stat-number {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: 3.6rem;
   font-weight: 700;
   color: var(--green);
@@ -569,6 +567,15 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   letter-spacing: .06em;
   text-transform: uppercase;
 }
+
+/* ── Inline style replacements ── */
+.result-divider       { height: 1px; background: var(--border); margin: 20px 0; }
+.warn-box-icon        { flex-shrink: 0; margin-top: 1px; }
+.stat-card.hidden     { display: none; }
+.logo-wrap-link       { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.btn-reveal-centered  { max-width: 260px; margin: 0 auto; }
+.otp-spam-hint        { font-size: .82rem; color: var(--text-dim); }
+.otp-card .btn-primary { margin-top: 8px; }
 
 /* ── Footer ── */
 .footer {
@@ -664,7 +671,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: 1rem;
   padding: 16px;
   word-break: break-all;
@@ -688,7 +695,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: none;
   border-radius: var(--radius-sm);
   color: #000;
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .9rem;
   font-weight: 700;
   cursor: pointer;
@@ -744,7 +751,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: 1.6rem;
   font-weight: 600;
   letter-spacing: 10px;
@@ -789,7 +796,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: .88rem;
   font-weight: 500;
   cursor: pointer;
