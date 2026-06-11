@@ -10,6 +10,7 @@ services:
       - PORT=3001
       - HOST=blink.malto.icu
       - SECRET_KEY=${SECRET_KEY}
+      - CIPHER_KEY=${CIPHER_KEY}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - "EMAIL_FROM=Blink <noreply@malto.icu>"
       - STATS_FILE=/data/stats.json

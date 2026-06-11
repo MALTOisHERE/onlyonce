@@ -182,13 +182,37 @@ const MIN_CT_LEN  = 24;
 // Max plaintext 10 KB + 16-byte GCM tag → ≤ 13 720 base-64 chars
 const MAX_CT_LEN  = 13_720;
 
-// ── Server secret (K3) ───────────────────────────────────────────────────────
-// K3 never leaves the server. Combined with K1 (URL) and K2 (memory) via HMAC
-// so that each secret gets a unique K3 contribution tied to its ID.
+// ── Server secrets (K3 + K4) ─────────────────────────────────────────────────
+// K3: masks K2 in memory via HMAC — unique per secret, tied to its ID.
+// K4: re-encrypts the ciphertext at rest — mandatory for any decryption.
+// Neither key ever leaves the server or travels over any network.
 const K3 = process.env.SECRET_KEY;
+const K4 = process.env.CIPHER_KEY ? Buffer.from(process.env.CIPHER_KEY, 'hex') : null;
 
 function deriveK3Mask(id) {
   return crypto.createHmac('sha256', K3).update(id).digest();
+}
+
+function encryptWithK4(ciphertextB64) {
+  const ct  = Buffer.from(ciphertextB64, 'base64');
+  const iv  = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', K4, iv);
+  const enc = Buffer.concat([cipher.update(ct), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+    encCt: Buffer.concat([enc, tag]).toString('base64'),
+    ctIv:  iv.toString('base64'),
+  };
+}
+
+function decryptWithK4(encCtB64, ctIvB64) {
+  const enc = Buffer.from(encCtB64, 'base64');
+  const iv  = Buffer.from(ctIvB64,  'base64');
+  const tag = enc.subarray(enc.length - 16);
+  const ct  = enc.subarray(0, enc.length - 16);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', K4, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(ct), decipher.final()]).toString('base64');
 }
 
 // ── Email client ─────────────────────────────────────────────────────────────
@@ -308,7 +332,14 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     k2Stored = maskedBuf.toString('base64');
   }
 
-  secrets.set(id, { ciphertext, iv, k2: k2Stored, expiresAt, otpHash, otpAttempts: 0 });
+  // Wrap ciphertext with K4 before storage — K4 is mandatory for any decryption
+  let storedCt = ciphertext;
+  let ctIv     = null;
+  if (K4) {
+    ({ encCt: storedCt, ctIv } = encryptWithK4(ciphertext));
+  }
+
+  secrets.set(id, { ciphertext: storedCt, ctIv, iv, k2: k2Stored, expiresAt, otpHash, otpAttempts: 0 });
 
   stats.secretsCreated++;
   if (otpHash) stats.secretsWithEmail++;
@@ -370,7 +401,9 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   // Reconstruct key, decrypt, consume secret atomically
   let plaintext;
   try {
-    plaintext = serverDecrypt(secret.ciphertext, secret.iv, k1B64, secret.k2, id);
+    // Unwrap K4 layer first — get back the original browser ciphertext
+    const rawCt = (K4 && secret.ctIv) ? decryptWithK4(secret.ciphertext, secret.ctIv) : secret.ciphertext;
+    plaintext = serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id);
   } catch {
     return res.status(400).json({ error: 'Decryption failed. The link may be corrupted.' });
   }
@@ -428,6 +461,9 @@ process.on('SIGINT',  () => shutdown('SIGINT'));
 // ── Startup checks ────────────────────────────────────────────────────────────
 if (!process.env.SECRET_KEY) {
   console.warn('[warn] SECRET_KEY not set — K3 HMAC binding is disabled (K2 stored unmasked)');
+}
+if (!process.env.CIPHER_KEY) {
+  console.warn('[warn] CIPHER_KEY not set — K4 ciphertext encryption is disabled');
 }
 if (!process.env.RESEND_API_KEY) {
   console.warn('[warn] RESEND_API_KEY not set — email OTP feature is disabled');
