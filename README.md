@@ -15,11 +15,11 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 
 ## Architecture
 
-[View full key architecture diagram on FigJam](https://www.figma.com/board/UKidXPX39AfIrvN2nI0sCl/Blink-%E2%80%94-Key-Architecture---Full-Workflow?node-id=0-1&t=gQ11fsLk21mWKNBa-1)
+[View full architecture diagram on FigJam](https://www.figma.com/board/zyhi0yFeGoiPNghCgV661s/Blink-%E2%80%94-How-It-Works--with-OTP-?node-id=0-1&t=E97FNlCEh2ZNJemb-1)
 
 ## Features
 
-- **End-to-end encrypted** — AES-256-GCM with three-factor key splitting (K1 + K2 + K3)
+- **End-to-end encrypted** — AES-256-GCM with four-factor key splitting (K1 + K2 + K3 + K4)
 - **View once** — secret is deleted on first read, atomically
 - **48-hour TTL** — unviewed secrets are automatically purged after 48 hours
 - **Email verification (optional)** — lock a link to a specific recipient; they must enter a 6-digit code sent to their inbox to reveal the secret. Wrong code 5 times → secret self-destructs
@@ -35,9 +35,10 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 | `K` | Browser only (never stored) | AES-256-GCM encryption key |
 | `K1` | URL fragment only | Sent to server at reveal time via `X-Key` header |
 | `K2` | Server memory (masked) | Stored as `K2 XOR HMAC(K3, id)` — useless without K3 |
-| `K3` | Server env var only | Permanent HMAC secret, never transmitted anywhere |
+| `K3` | Server env var only | HMAC-masks K2 at rest — never transmitted anywhere |
+| `K4` | Server env var only | AES-encrypts ciphertext at rest — never transmitted anywhere |
 
-At reveal: `K = K1 XOR K2_stored XOR HMAC(K3, id)` — requires all three factors.
+All four factors always required to decrypt. Missing any one → decryption fails completely.
 
 ## Stack
 
@@ -83,7 +84,8 @@ The container binds to `127.0.0.1:3001` — put nginx in front.
 | `NODE_ENV` | `development` | Set to `production` to enable HTTPS redirect and HSTS |
 | `PORT` | `3000` | Port to listen on |
 | `HOST` | — | Your domain (e.g. `blink.malto.icu`). Required in production |
-| `SECRET_KEY` | — | Permanent server secret for K3 HMAC binding. Generate with `openssl rand -hex 32` |
+| `SECRET_KEY` | — | K3 — HMAC-masks K2 at rest. Generate with `openssl rand -hex 32` |
+| `CIPHER_KEY` | — | K4 — AES-encrypts ciphertext at rest. Generate with `openssl rand -hex 32` |
 | `RESEND_API_KEY` | — | Resend API key. Required for email OTP feature |
 | `EMAIL_FROM` | `Blink <noreply@malto.icu>` | Sender address (must be a verified domain in Resend) |
 
