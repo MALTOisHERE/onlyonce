@@ -29,7 +29,7 @@ app.use((req, res, next) => {
     'Content-Security-Policy',
     [
       "default-src 'none'",
-      "script-src 'self' https://static.cloudflareinsights.com 'sha256-1LO9PKHO00tqKMiBbloweUEHHxgpEGrpw3fVmrEQnjA='",
+      "script-src 'self'",
       "style-src 'self'",
       "font-src 'none'",
       "img-src 'self' data:",
