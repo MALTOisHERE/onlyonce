@@ -5,11 +5,15 @@ const crypto       = require('crypto');
 const fs           = require('fs');
 const path         = require('path');
 const { Resend }   = require('resend');
+const morgan       = require('morgan');
 
 const app = express();
 
 // ── Trust reverse proxy (nginx, Cloudflare, etc.) ──────────────────────────
 app.set('trust proxy', 1);
+
+// ── Request logging ──────────────────────────────────────────────────────────
+app.use(morgan('combined'));
 
 // ── Security headers ────────────────────────────────────────────────────────
 app.use((req, res, next) => {
