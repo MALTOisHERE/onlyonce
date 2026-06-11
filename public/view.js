@@ -1,6 +1,6 @@
 (() => {
   const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const K1_B64_RE = /^[A-Za-z0-9+/]{44}$/;
+  const K1_B64_RE = /^[A-Za-z0-9+/]{43}=$/;
 
   function setState(id) {
     document.querySelectorAll('.view-state').forEach(el => el.classList.remove('active'));
