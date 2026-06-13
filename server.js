@@ -419,6 +419,12 @@ app.get('/api/stats', (req, res) => {
   res.json({ secretsCreated: stats.secretsCreated });
 });
 
+// ── About page ───────────────────────────────────────────────────────────────
+app.get('/about', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'public', 'about.html'));
+});
+
 // ── View page ────────────────────────────────────────────────────────────────
 app.get('/view/:id', (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.redirect('/');

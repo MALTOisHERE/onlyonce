@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blink: How It Works</title>
+  <link rel="icon" type="image/png" href="/logo.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo-wrap">
+        <a href="/" class="logo-wrap-link">
+          <img src="/logo.png" alt="Blink" class="logo">
+          <div>
+            <span class="logo-text">Blink</span>
+            <div class="logo-by">by MALTO</div>
+          </div>
+        </a>
+      </div>
+      <p class="tagline">Share secrets that disappear. Once seen, forever gone.</p>
+    </header>
+
+    <main class="about-main">
+
+      <!-- Hero -->
+      <section class="about-hero">
+        <div class="about-hero-badge">About Blink</div>
+        <h1 class="about-hero-title">Secure secret sharing,<br>built the right way.</h1>
+        <p class="about-hero-desc">Blink lets you share passwords, API keys, and sensitive text through a one-time link that permanently self-destructs the moment it is opened. No accounts. No database. No trace.</p>
+        <a href="/" class="btn-primary about-cta">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Create a Secret
+        </a>
+      </section>
+
+      <!-- How it works -->
+      <section class="about-section">
+        <h2 class="about-section-title">How it works</h2>
+
+        <div class="about-phase-label">Phase 1: Create</div>
+        <div class="process-steps">
+          <div class="process-step">
+            <div class="process-step-num">1</div>
+            <div class="process-step-body">
+              <div class="process-step-title">You enter your secret</div>
+              <div class="process-step-desc">Type or paste your password, API key, or any sensitive text directly in your browser. Nothing is sent yet.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">2</div>
+            <div class="process-step-body">
+              <div class="process-step-title">Browser encrypts it</div>
+              <div class="process-step-desc">Your browser generates a random AES-256-GCM key K and encrypts the secret locally. The plaintext never leaves your device.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">3</div>
+            <div class="process-step-body">
+              <div class="process-step-title">Key is split in two</div>
+              <div class="process-step-desc">K is split into K1 (random bytes) and K2 (K XOR K1). K1 goes into the URL fragment, which the browser never sends to any server. K2 is sent to the server.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">4</div>
+            <div class="process-step-body">
+              <div class="process-step-title">Server stores everything masked</div>
+              <div class="process-step-desc">The server masks K2 with HMAC(K3, id) before storing it, and re-encrypts the ciphertext with K4. K3 and K4 are permanent server secrets that never travel over any network.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">5</div>
+            <div class="process-step-body">
+              <div class="process-step-title">You get a one-time link</div>
+              <div class="process-step-desc">The link contains K1 in the URL fragment. Share it via WhatsApp, email, or any channel. Optionally lock it to a recipient's email with a 6-digit OTP.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-phase-divider">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+          Recipient opens the link
+        </div>
+
+        <div class="about-phase-label">Phase 2: Reveal</div>
+        <div class="process-steps">
+          <div class="process-step">
+            <div class="process-step-num">6</div>
+            <div class="process-step-body">
+              <div class="process-step-title">K1 is read and erased</div>
+              <div class="process-step-desc">The recipient's browser reads K1 from the URL fragment and immediately clears it from browser history, before any network request is made.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">7</div>
+            <div class="process-step-body">
+              <div class="process-step-title">OTP verified (if set)</div>
+              <div class="process-step-desc">If a recipient email was set, the server asks for the 6-digit code. Five wrong attempts permanently destroys the secret. Correct code proceeds to decryption.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">8</div>
+            <div class="process-step-body">
+              <div class="process-step-title">Server reconstructs and decrypts</div>
+              <div class="process-step-desc">Using K1 + K2_stored + K3 + K4, the server reconstructs K, unwraps the ciphertext, and decrypts the secret. All four factors are required; missing any one makes decryption impossible.</div>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="process-step-num">9</div>
+            <div class="process-step-body">
+              <div class="process-step-title">Secret shown, deleted forever</div>
+              <div class="process-step-desc">The plaintext is returned to the browser and the secret is permanently deleted from server memory in the same atomic operation. The link is now dead forever.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- What makes it secure -->
+      <section class="about-section">
+        <h2 class="about-section-title">What makes it secure</h2>
+        <div class="security-grid">
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="security-card-title">Four-factor key splitting</div>
+            <div class="security-card-desc">K1 (URL) + K2 (server memory) + K3 (HMAC mask) + K4 (ciphertext encryption). All four required. Missing any one means decryption fails completely.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="security-card-title">View once, gone forever</div>
+            <div class="security-card-desc">Secret is deleted from memory atomically on first reveal. No database, no backup, no log. Even we cannot retrieve it after deletion.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="security-card-title">No offline decryption</div>
+            <div class="security-card-desc">Even with the ciphertext and the URL, decryption is impossible without the server. K2, K3, and K4 never leave the server.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div class="security-card-title">Email OTP lock</div>
+            <div class="security-card-desc">Lock a secret to a specific inbox. Recipient must enter a 6-digit code. Five wrong attempts permanently destroys the secret.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="security-card-title">Auto-expiry</div>
+            <div class="security-card-desc">Unviewed secrets are automatically purged after 48 hours. The link becomes permanently invalid with no manual action needed.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="security-card-title">Strict CSP &amp; no tracking</div>
+            <div class="security-card-desc">No external scripts, no fonts, no analytics. Content Security Policy blocks all injection. User content is set via textContent, immune to XSS.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="about-section">
+        <h2 class="about-section-title">Frequently Asked Questions</h2>
+        <div class="faq-list">
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Is my secret really deleted after being viewed?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Yes. The moment the recipient opens the link and reveals the secret, it is permanently deleted from the server's memory. There is no database, no backup, no log. Once gone, not even we can recover it.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Can Blink read my secret?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">No. Your secret is encrypted in your browser before anything is sent to the server. The server only ever sees ciphertext, never plaintext. Even if the server were compromised, the attacker would need all four cryptographic keys to decrypt anything. And even if we somehow could read your secret, we would have no idea who sent it: no accounts, no names, no identity.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              How does the four-factor key work?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">The AES-256 key K is split: K1 goes in the URL fragment (never sent to the server), K2 is sent to the server but masked with HMAC(K3) before storage, and the ciphertext is re-encrypted with K4. K3 and K4 are permanent server environment variables that never travel anywhere. All four are required to reconstruct K and decrypt.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              What if the recipient never opens the link?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Unviewed secrets automatically expire after 48 hours. Once expired, the secret is purged from memory and the link becomes permanently invalid. Nothing is kept.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              What is the email verification option?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Optionally, you can lock a secret to a specific recipient by entering their email address. They will receive a 6-digit one-time code that they must enter before the secret is revealed. Enter 5 wrong codes and the secret self-destructs permanently.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Can I view my own secret after sharing the link?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">No. Once you share the link, consider the secret gone. If you open it yourself, it will be deleted and the recipient will not be able to view it. Simply create a new link if needed.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Is the link safe to share over WhatsApp or email?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Yes. The decryption key is in the URL fragment (the part after the #), which is never sent to any server. Even if intercepted, the link works only once. For maximum security, combine it with email OTP.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              What kinds of secrets can I share?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Anything text-based: passwords, API keys, private notes, credentials, access codes, recovery phrases. Maximum size is 10 KB. You can also use the built-in password generator to create a strong password and share it instantly.</div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
+    </footer>
+  </div>
+
+  <script src="/about.js"></script>
+</body>
+</html>
