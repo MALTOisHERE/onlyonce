@@ -21,7 +21,7 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 
 - **End-to-end encrypted** - AES-256-GCM with four-factor key splitting (K1 + K2 + K3 + K4)
 - **View once** - secret is deleted on first read, atomically
-- **48-hour TTL** - unviewed secrets are automatically purged after 48 hours
+- **Configurable expiry** - choose 1, 6, 24, or 48 hours; unviewed secrets are automatically purged at expiry
 - **Email verification (optional)** - lock a link to a specific recipient; they must enter a 6-digit code sent to their inbox to reveal the secret. Wrong code 5 times → secret self-destructs
 - **Password generator** - configurable length, charset, with strength meter
 - **Rate limited** - 10 creates / 30 reads per minute per IP; 3 email OTPs per hour per IP
@@ -121,7 +121,7 @@ server {
 | Brute-force IDs | UUID v4 (122 bits entropy) + rate limiting |
 | XSS | Strict CSP (`script-src 'self'`); user content set via `textContent` |
 | Host header injection | HTTPS redirect uses `process.env.HOST`, not `req.headers.host` |
-| Memory exhaustion | 10 000 secret cap; 48h TTL; purge interval every 60s |
+| Memory exhaustion | 10 000 secret cap; 1–48h TTL (user-chosen); purge interval every 60s |
 
 ## Project structure
 
