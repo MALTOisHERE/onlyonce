@@ -831,6 +831,103 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   padding: 0 18px 16px;
 }
 
+/* ── Toast notifications ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  transform: translateY(90px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: .84rem;
+  max-width: min(360px, calc(100vw - 48px));
+  box-shadow: 0 8px 32px rgba(0,0,0,.55);
+  opacity: 0;
+  transition: transform .28s ease, opacity .28s ease;
+  pointer-events: none;
+}
+.toast.toast-show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.toast-error {
+  background: var(--surface);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+.toast-error span { flex: 1; line-height: 1.45; }
+.toast-close {
+  background: none;
+  border: none;
+  color: currentColor;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: .6;
+  padding: 0 2px;
+  flex-shrink: 0;
+  transition: opacity var(--transition);
+}
+.toast-close:hover { opacity: 1; }
+
+/* ── Byte counter ── */
+.byte-counter {
+  font-size: .72rem;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
+  color: var(--text-dim);
+  text-align: right;
+  margin-top: 5px;
+  transition: color var(--transition);
+}
+.byte-counter.byte-counter-warn   { color: var(--warn); }
+.byte-counter.byte-counter-danger { color: var(--danger); }
+
+/* ── Expiry pills ── */
+.expiry-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.expiry-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.expiry-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.expiry-pill { display: flex; cursor: pointer; }
+.expiry-pill input { display: none; }
+.expiry-pill span {
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: .81rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  transition: var(--transition);
+  user-select: none;
+}
+.expiry-pill:hover span { border-color: var(--border-hi); color: var(--text); }
+.expiry-pill input:checked + span {
+  border-color: var(--green);
+  color: var(--green);
+  background: var(--green-dim);
+}
+
+/* ── Secret: create another link ── */
+.secret-new-link { text-align: center; margin-top: 18px; }
+
 /* ── Footer ── */
 .footer {
   text-align: center;

@@ -7,6 +7,8 @@ const path         = require('path');
 const { Resend }   = require('resend');
 const morgan       = require('morgan');
 
+const { RateLimiter } = require('./lib/ratelimiter');
+
 const app = express();
 
 // ── Trust reverse proxy (nginx, Cloudflare, etc.) ──────────────────────────
@@ -57,52 +59,10 @@ if (process.env.NODE_ENV === 'production' && process.env.HOST) {
   });
 }
 
-// ── Rate limiter (fixed-window, no external deps) ──────────────────────────
-class RateLimiter {
-  constructor(windowMs, max) {
-    this.windowMs = windowMs;
-    this.max      = max;
-    this.store    = new Map();
-    const t = setInterval(() => {
-      const now = Date.now();
-      for (const [k, v] of this.store) {
-        if (v.resetAt < now) this.store.delete(k);
-      }
-    }, windowMs);
-    if (t.unref) t.unref();
-  }
-
-  // Returns retry-after seconds if limited, 0 if allowed
-  check(ip) {
-    const key = ip || '0.0.0.0';
-    const now = Date.now();
-    let e = this.store.get(key);
-    if (!e || now >= e.resetAt) {
-      e = { count: 0, resetAt: now + this.windowMs };
-      this.store.set(key, e);
-    }
-    e.count++;
-    if (e.count > this.max) {
-      return Math.ceil((e.resetAt - now) / 1000);
-    }
-    return 0;
-  }
-
-  middleware() {
-    return (req, res, next) => {
-      const retryAfter = this.check(req.ip);
-      if (retryAfter > 0) {
-        res.setHeader('Retry-After', String(retryAfter));
-        return res.status(429).json({ error: 'Too many requests. Please slow down.' });
-      }
-      next();
-    };
-  }
-}
-
-const createLimiter = new RateLimiter(60_000,      10);  // 10 creates  / min  per IP
-const readLimiter   = new RateLimiter(60_000,      30);  // 30 reads    / min  per IP
-const emailLimiter  = new RateLimiter(3_600_000,    3);  //  3 OTP emails / hour per IP
+// ── Rate limiters (configurable via env for testing) ───────────────────────
+const createLimiter = new RateLimiter(60_000,    parseInt(process.env.CREATE_RATE_LIMIT || '10',  10));
+const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_LIMIT   || '30',  10));
+const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
 
 // ── Body parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '16kb', strict: true }));
@@ -120,8 +80,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // ── In-memory store ─────────────────────────────────────────────────────────
 const secrets     = new Map();
-const MAX_SECRETS = 10_000;
-const TTL_MS      = 48 * 60 * 60 * 1000; // 48 hours
+const MAX_SECRETS      = 10_000;
+const ALLOWED_TTL_HOURS = new Set([1, 6, 24, 48]);
+const DEFAULT_TTL_HOURS = 48;
 
 // ── Statistics ───────────────────────────────────────────────────────────────
 const STATS_FILE = process.env.STATS_FILE || path.join(__dirname, 'data', 'stats.json');
@@ -181,6 +142,12 @@ const K2_B64_LEN  = 44;
 const MIN_CT_LEN  = 24;
 // Max plaintext 10 KB + 16-byte GCM tag → ≤ 13 720 base-64 chars
 const MAX_CT_LEN  = 13_720;
+
+// ── Startup checks ────────────────────────────────────────────────────────────
+if (process.env.CIPHER_KEY && !/^[0-9a-f]{64}$/i.test(process.env.CIPHER_KEY)) {
+  console.error('[error] CIPHER_KEY must be exactly 64 hex characters (32 bytes). Exiting.');
+  process.exit(1);
+}
 
 // ── Server secrets (K3 + K4) ─────────────────────────────────────────────────
 // K3: masks K2 in memory via HMAC — unique per secret, tied to its ID.
@@ -276,7 +243,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv, k2, recipientEmail } = body;
+  const { ciphertext, iv, k2, recipientEmail, expiresIn: expiresInRaw } = body;
 
   if (
     typeof ciphertext !== 'string' || typeof iv !== 'string' || typeof k2 !== 'string' ||
@@ -319,8 +286,9 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     }
   }
 
+  const expiresInHours = ALLOWED_TTL_HOURS.has(Number(expiresInRaw)) ? Number(expiresInRaw) : DEFAULT_TTL_HOURS;
   const id        = crypto.randomUUID();
-  const expiresAt = Date.now() + TTL_MS;
+  const expiresAt = Date.now() + expiresInHours * 3_600_000;
 
   // Apply K3 mask to K2 before storage: k2Stored = K2 XOR HMAC(K3, id)
   let k2Stored = k2;
@@ -438,42 +406,46 @@ app.use((req, res) => {
 });
 
 // ── Global error handler ────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, _next) => {
   console.error('[error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-// ── Start ────────────────────────────────────────────────────────────────────
-const PORT   = parseInt(process.env.PORT || '3000', 10);
-const server = app.listen(PORT, () => {
-  console.log(`Blink listening on port ${PORT}  [${process.env.NODE_ENV || 'development'}]`);
-});
-
-// ── Graceful shutdown ────────────────────────────────────────────────────────
-function shutdown(signal) {
-  console.log(`${signal} — shutting down`);
-  saveStats();
-  server.close(() => {
-    secrets.clear();
-    process.exit(0);
-  });
-  // Force-kill if server hasn't closed within 5 s
-  setTimeout(() => process.exit(1), 5_000).unref();
-}
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT',  () => shutdown('SIGINT'));
-
 // ── Startup checks ────────────────────────────────────────────────────────────
-if (!process.env.SECRET_KEY) {
-  console.warn('[warn] SECRET_KEY not set — K3 HMAC binding is disabled (K2 stored unmasked)');
+if (process.env.NODE_ENV !== 'test') {
+  if (!process.env.SECRET_KEY) {
+    console.warn('[warn] SECRET_KEY not set — K3 HMAC binding is disabled (K2 stored unmasked)');
+  }
+  if (!process.env.CIPHER_KEY) {
+    console.warn('[warn] CIPHER_KEY not set — K4 ciphertext encryption is disabled');
+  }
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[warn] RESEND_API_KEY not set — email OTP feature is disabled');
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
+    console.warn('[warn] HOST not set — HTTPS redirect will not work in production');
+  }
 }
-if (!process.env.CIPHER_KEY) {
-  console.warn('[warn] CIPHER_KEY not set — K4 ciphertext encryption is disabled');
+
+// ── Start ────────────────────────────────────────────────────────────────────
+if (require.main === module) {
+  const PORT   = parseInt(process.env.PORT || '3000', 10);
+  const server = app.listen(PORT, () => {
+    console.log(`Blink listening on port ${PORT}  [${process.env.NODE_ENV || 'development'}]`);
+  });
+
+  // ── Graceful shutdown ────────────────────────────────────────────────────────
+  const shutdown = (signal) => {
+    console.log(`${signal}: shutting down`);
+    saveStats();
+    server.close(() => {
+      secrets.clear();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 5_000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
-if (!process.env.RESEND_API_KEY) {
-  console.warn('[warn] RESEND_API_KEY not set — email OTP feature is disabled');
-}
-if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
-  console.warn('[warn] HOST not set — HTTPS redirect will not work in production');
-}
+
+module.exports = { app };

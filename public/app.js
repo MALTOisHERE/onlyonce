@@ -99,6 +99,17 @@
     if (val) copyText(val, document.getElementById('gen-copy'));
   });
 
+  // ── Byte counter ───────────────────────────────────────────────────────────
+  const secretInput  = document.getElementById('secret-input');
+  const byteCounter  = document.getElementById('byte-counter');
+  const MAX_BYTES    = 10 * 1024;
+  secretInput.addEventListener('input', () => {
+    const bytes = new TextEncoder().encode(secretInput.value).length;
+    byteCounter.textContent = `${(bytes / 1024).toFixed(1)} / 10 KB`;
+    byteCounter.classList.toggle('byte-counter-warn',   bytes > MAX_BYTES * 0.8);
+    byteCounter.classList.toggle('byte-counter-danger', bytes >= MAX_BYTES);
+  });
+
   // ── Crypto ─────────────────────────────────────────────────────────────────
 
   // Loop-based base64 — avoids stack overflow from spread on large arrays (F-07)
@@ -162,8 +173,9 @@
     try {
       const { ciphertext, iv, k1, k2 } = await encryptSecret(secret);
       const recipientEmail = document.getElementById('recipient-email').value.trim();
+      const expiresIn = parseInt(document.querySelector('input[name="expiry"]:checked').value, 10);
 
-      const payload = { ciphertext, iv, k2 };
+      const payload = { ciphertext, iv, k2, expiresIn };
       if (recipientEmail) payload.recipientEmail = recipientEmail;
 
       const res = await fetch('/api/secret', {
@@ -187,6 +199,9 @@
       const viewUrl = `${window.location.origin}/view/${id}#${encodeURIComponent(k1)}`;
       document.getElementById('link-output').value = viewUrl;
       document.getElementById('result').classList.remove('hidden');
+
+      const expiryLabel = expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
+      document.querySelector('.warn-box span').textContent = `View once only · Expires in ${expiryLabel} if unopened · Never stored in plaintext`;
 
       // Clear plaintext and email from inputs
       document.getElementById('secret-input').value  = '';
@@ -214,16 +229,29 @@
   // ── Helpers ────────────────────────────────────────────────────────────────
   const WARN_ICON_HTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
 
+  let _toast = null;
+  let _toastTimer = null;
+
   function showError(msg) {
-    const el = document.getElementById('error-banner');
-    // Use innerHTML only for the hardcoded SVG; set msg via textContent to prevent XSS (F-10)
-    el.innerHTML = WARN_ICON_HTML + '<span></span>';
-    el.querySelector('span').textContent = msg;
-    el.classList.add('show');
+    if (_toast) { _toast.remove(); clearTimeout(_toastTimer); }
+    _toast = document.createElement('div');
+    _toast.className = 'toast toast-error';
+    _toast.innerHTML = WARN_ICON_HTML + '<span></span><button class="toast-close" aria-label="Dismiss">&times;</button>';
+    _toast.querySelector('span').textContent = msg;
+    _toast.querySelector('.toast-close').addEventListener('click', hideError);
+    document.body.appendChild(_toast);
+    void _toast.offsetWidth;
+    _toast.classList.add('toast-show');
+    _toastTimer = setTimeout(hideError, 5000);
   }
 
   function hideError() {
-    document.getElementById('error-banner').classList.remove('show');
+    if (!_toast) return;
+    clearTimeout(_toastTimer);
+    _toast.classList.remove('toast-show');
+    const el = _toast;
+    _toast = null;
+    setTimeout(() => el.remove(), 300);
   }
 
   function hideResult() {

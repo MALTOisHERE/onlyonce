@@ -1,18 +1,25 @@
 {
   "name": "blink",
   "version": "1.0.0",
-  "description": "Share secrets that disappear — end-to-end encrypted, view-once links",
+  "description": "Share secrets that disappear - end-to-end encrypted, view-once links",
   "main": "server.js",
   "engines": {
     "node": ">=18.0.0"
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test test/api.test.js test/ratelimiter.test.js",
+    "lint": "eslint server.js lib/ test/"
   },
   "dependencies": {
     "express": "^4.18.2",
     "morgan": "^1.11.0",
     "resend": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-security": "^4.0.1",
+    "supertest": "^7.0.0"
   }
 }

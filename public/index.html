@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Blink - Share secrets that disappear. Once seen, forever gone.</title>
+  <meta name="description" content="End-to-end encrypted view-once secrets. Share passwords and API keys through a one-time link that permanently self-destructs the moment it is opened.">
+  <meta property="og:title" content="Blink - Share secrets that disappear">
+  <meta property="og:description" content="End-to-end encrypted view-once secrets. Share passwords and API keys through a one-time link that permanently self-destructs.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://blink.malto.icu">
+  <meta property="og:image" content="https://blink.malto.icu/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Blink - Share secrets that disappear">
+  <meta name="twitter:description" content="End-to-end encrypted view-once secrets. Share passwords and API keys through a one-time link that permanently self-destructs.">
   <link rel="icon" type="image/png" href="/logo.png">
   <link rel="stylesheet" href="/style.css">
 </head>
@@ -32,6 +41,7 @@
           <div class="field">
             <label>Your Secret</label>
             <textarea id="secret-input" rows="4" placeholder="Paste your password, API key, or any sensitive text…" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+            <div class="byte-counter" id="byte-counter">0.0 / 10 KB</div>
           </div>
         </div>
 
@@ -94,7 +104,15 @@
           <p class="email-hint">If set, recipient must enter a code sent to this email to reveal the secret.</p>
         </div>
 
-        <div id="error-banner" class="error-banner"></div>
+        <div class="expiry-field">
+          <span class="expiry-label">Expires after</span>
+          <div class="expiry-pills">
+            <label class="expiry-pill"><input type="radio" name="expiry" value="1"><span>1 hour</span></label>
+            <label class="expiry-pill"><input type="radio" name="expiry" value="6"><span>6 hours</span></label>
+            <label class="expiry-pill"><input type="radio" name="expiry" value="24" checked><span>24 hours</span></label>
+            <label class="expiry-pill"><input type="radio" name="expiry" value="48"><span>48 hours</span></label>
+          </div>
+        </div>
 
         <div class="divider"></div>
 

@@ -1,0 +1,17 @@
+{
+  "env": { "node": true, "es2022": true },
+  "extends": ["eslint:recommended", "plugin:security/recommended-legacy"],
+  "plugins": ["security"],
+  "parserOptions": { "ecmaVersion": 2022 },
+  "rules": {
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "no-console": "off",
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always"],
+    "no-empty": ["error", { "allowEmptyCatch": true }],
+    "security/detect-object-injection": "off",
+    "security/detect-non-literal-fs-filename": "off"
+  },
+  "ignorePatterns": ["public/", "node_modules/"]
+}
