@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Share secrets that disappear - end-to-end encrypted, view-once links",
   "main": "server.js",
+  "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
   },

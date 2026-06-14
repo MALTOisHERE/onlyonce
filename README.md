@@ -2,6 +2,8 @@
 
 Share secrets that disappear. Once seen, forever gone.
 
+**Live demo: [blink.malto.icu](https://blink.malto.icu)**
+
 Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a password or generate one, get a one-time link - the secret is deleted the moment it's opened.
 
 ## How it works
