@@ -36,7 +36,7 @@
     };
   }
 
-  async function revealSecret(id, k1B64, otp = null) {
+  async function revealSecret(id, k1B64, otp = null, onDone = null) {
     try {
       const headers = { 'X-Key': k1B64 };
       if (otp) headers['X-OTP'] = otp;
@@ -46,7 +46,7 @@
         const data = await res.json();
         if (data.error === 'otp_required') {
           setState('state-otp');
-          setupOTP(id, k1B64);
+          setupOTP(id, k1B64, onDone);
           return;
         }
         if (data.error === 'invalid_otp') {
@@ -58,15 +58,17 @@
           errEl.classList.remove('hidden');
           document.getElementById('otp-input').value = '';
           document.getElementById('otp-input').focus();
-          setupOTP(id, k1B64);
+          setupOTP(id, k1B64, onDone);
           return;
         }
       }
       if (res.status === 404) {
+        onDone?.();
         showExpired('Secret Not Found', 'This secret has already been viewed, has expired, or the link is invalid. Ask the sender to create a new one.');
         return;
       }
       if (res.status === 410) {
+        onDone?.();
         const data = await res.json().catch(() => ({}));
         if (data.error === 'too_many_attempts') {
           showExpired('Secret Destroyed', 'Too many incorrect codes. The secret has been permanently deleted for security.');
@@ -82,13 +84,15 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const { plaintext } = await res.json();
+      onDone?.();
       showSecret(plaintext);
     } catch (err) {
+      onDone?.();
       showExpired('Something Went Wrong', 'Could not retrieve or decrypt the secret. The link may be malformed or have been tampered with.');
     }
   }
 
-  function setupOTP(id, k1B64) {
+  function setupOTP(id, k1B64, onDone = null) {
     const btn   = document.getElementById('btn-otp-submit');
     const input = document.getElementById('otp-input');
     input.focus();
@@ -99,7 +103,7 @@
       if (otp.length !== 6) return;
       document.getElementById('otp-error').classList.add('hidden');
       setState('state-loading');
-      revealSecret(id, k1B64, otp);
+      revealSecret(id, k1B64, otp, onDone);
     });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') clone.click();
@@ -109,11 +113,17 @@
   function init() {
     const pathParts = window.location.pathname.split('/');
     const id        = pathParts[pathParts.length - 1];
-    const k1B64     = decodeURIComponent(window.location.hash.slice(1));
+    const SESS_KEY  = `blink_k1_${id}`;
 
-    // Remove K1 from URL immediately — before any async work — so it never
-    // sits in browser history after this page load.
-    history.replaceState(null, '', window.location.pathname);
+    // Read K1 from URL hash. If the page was refreshed (hash already stripped),
+    // fall back to sessionStorage so OTP users don't lose access mid-flow.
+    let k1B64 = decodeURIComponent(window.location.hash.slice(1));
+    if (k1B64 && K1_B64_RE.test(k1B64)) {
+      try { sessionStorage.setItem(SESS_KEY, k1B64); } catch {}
+      history.replaceState(null, '', window.location.pathname);
+    } else {
+      try { k1B64 = sessionStorage.getItem(SESS_KEY) || ''; } catch {}
+    }
 
     if (!id || !UUID_RE.test(id)) {
       showExpired('Invalid Link', 'The link format is invalid.');
@@ -125,11 +135,13 @@
       return;
     }
 
+    const clearK1 = () => { try { sessionStorage.removeItem(SESS_KEY); } catch {} };
+
     setState('state-reveal');
 
     document.getElementById('btn-reveal').addEventListener('click', () => {
       setState('state-loading');
-      revealSecret(id, k1B64);
+      revealSecret(id, k1B64, null, clearK1);
     }, { once: true });
   }
 
