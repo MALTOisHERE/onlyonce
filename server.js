@@ -36,6 +36,8 @@ app.use((req, res, next) => {
       "font-src 'none'",
       "img-src 'self' data:",
       "connect-src 'self'",
+      "manifest-src 'self'",
+      "worker-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
