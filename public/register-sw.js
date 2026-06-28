@@ -2,17 +2,23 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 
 let _installPrompt = null;
 
+function setInstallVisible(visible) {
+  const btn = document.getElementById('btn-install');
+  if (!btn) return;
+  const sep = btn.previousElementSibling;
+  btn.classList.toggle('hidden', !visible);
+  if (sep && sep.classList.contains('logo-sep')) sep.classList.toggle('hidden', !visible);
+}
+
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   _installPrompt = e;
-  const bar = document.getElementById('install-bar');
-  if (bar) bar.classList.remove('hidden');
+  setInstallVisible(true);
 });
 
 window.addEventListener('appinstalled', () => {
   _installPrompt = null;
-  const bar = document.getElementById('install-bar');
-  if (bar) bar.classList.add('hidden');
+  setInstallVisible(false);
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!_installPrompt) return;
     await _installPrompt.prompt();
     _installPrompt = null;
-    const bar = document.getElementById('install-bar');
-    if (bar) bar.classList.add('hidden');
+    setInstallVisible(false);
   });
 });

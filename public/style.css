@@ -942,26 +942,29 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   transition: opacity var(--transition);
 }
 .footer-link:hover { opacity: .75; }
-.install-bar {
-  display: flex;
-  justify-content: center;
-  padding: 0 20px 18px;
+.logo-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex-shrink: 0;
 }
-.install-bar.hidden { display: none; }
+.logo-sep.hidden { display: none; }
 .btn-install {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
+  gap: 5px;
+  padding: 4px 10px;
   background: none;
   border: 1px solid var(--green);
   border-radius: var(--radius-sm);
   color: var(--green);
-  font-size: .78rem;
+  font-size: .72rem;
   cursor: pointer;
   transition: opacity var(--transition);
 }
 .btn-install:hover { opacity: .75; }
+.btn-install.hidden + .logo-sep,
+.btn-install.hidden { display: none; }
 
 /* ── View Page ── */
 .view-main {
