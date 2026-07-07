@@ -1,12 +1,39 @@
 (() => {
   const MAX_SECRET_BYTES = 10 * 1024; // 10 KB
 
+  // ── Link pending guard ─────────────────────────────────────────────────────
+  // True after a link is created, false once copied or result hidden voluntarily.
+  let linkPending = false;
+
+  function setLinkPending(val) {
+    linkPending = val;
+    if (val) {
+      window.addEventListener('beforeunload', onBeforeUnload);
+    } else {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    }
+  }
+
+  function onBeforeUnload(e) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+
   // ── Tab switching ──────────────────────────────────────────────────────────
   const tabs = [...document.querySelectorAll('.tab')];
   tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => {
+    tab.addEventListener('click', async () => {
       const prevIndex = tabs.indexOf(document.querySelector('.tab.active'));
       if (index === prevIndex) return;
+
+      if (linkPending) {
+        const leave = await confirmDiscard(
+          'You have a secure link ready to share. Switching tabs will discard it and you will need to create a new one.',
+          'Discard and switch'
+        );
+        if (!leave) return;
+      }
+
       const dir = index > prevIndex ? 'slide-in-right' : 'slide-in-left';
 
       tabs.forEach(t => t.classList.remove('active'));
@@ -20,6 +47,7 @@
       void content.offsetWidth; // force reflow so animation starts clean
       content.classList.add(dir);
       hideResult();
+      setLinkPending(false);
     });
   });
 
@@ -149,7 +177,55 @@
   const btnCreate = document.getElementById('btn-create');
   const BTN_HTML  = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Encrypt &amp; Create Link`;
 
+  // ── Email confirmation modal ───────────────────────────────────────────────
+  function confirmEmail(email) {
+    return new Promise(resolve => {
+      document.getElementById('modal-email').textContent = email;
+      const overlay = document.getElementById('email-confirm-overlay');
+      overlay.classList.remove('hidden');
+      const confirmBtn = document.getElementById('modal-confirm');
+      const cancelBtn  = document.getElementById('modal-cancel');
+      function close(result) {
+        overlay.classList.add('hidden');
+        confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+        cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+        resolve(result);
+      }
+      document.getElementById('modal-confirm').addEventListener('click', () => close(true));
+      document.getElementById('modal-cancel').addEventListener('click',  () => close(false));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(false); }, { once: true });
+    });
+  }
+
+  function confirmDiscard(body, discardLabel) {
+    return new Promise(resolve => {
+      document.getElementById('tab-warn-body').textContent = body;
+      document.getElementById('tab-warn-leave-label').textContent = discardLabel;
+      const overlay = document.getElementById('tab-warn-overlay');
+      overlay.classList.remove('hidden');
+      function close(result) {
+        overlay.classList.add('hidden');
+        document.getElementById('tab-warn-leave').replaceWith(document.getElementById('tab-warn-leave').cloneNode(true));
+        document.getElementById('tab-warn-stay').replaceWith(document.getElementById('tab-warn-stay').cloneNode(true));
+        resolve(result);
+      }
+      document.getElementById('tab-warn-leave').addEventListener('click', () => close(true));
+      document.getElementById('tab-warn-stay').addEventListener('click',  () => close(false));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(false); }, { once: true });
+    });
+  }
+
   btnCreate.addEventListener('click', async () => {
+    if (linkPending) {
+      const discard = await confirmDiscard(
+        'You already have a link ready to share. Creating a new one will discard it permanently.',
+        'Discard and create new'
+      );
+      if (!discard) return;
+      setLinkPending(false);
+      hideResult();
+    }
+
     const activeTab = document.querySelector('.tab.active').dataset.tab;
     let secret = '';
 
@@ -166,13 +242,18 @@
       return;
     }
 
+    const recipientEmail = document.getElementById('recipient-email').value.trim();
+    if (recipientEmail) {
+      const confirmed = await confirmEmail(recipientEmail);
+      if (!confirmed) return;
+    }
+
     hideError();
     btnCreate.disabled = true;
     btnCreate.textContent = 'Encrypting…';
 
     try {
       const { ciphertext, iv, k1, k2 } = await encryptSecret(secret);
-      const recipientEmail = document.getElementById('recipient-email').value.trim();
       const expiresIn = parseInt(document.querySelector('input[name="expiry"]:checked').value, 10);
 
       const payload = { ciphertext, iv, k2, expiresIn };
@@ -199,6 +280,7 @@
       const viewUrl = `${window.location.origin}/view/${id}#${encodeURIComponent(k1)}`;
       document.getElementById('link-output').value = viewUrl;
       document.getElementById('result').classList.remove('hidden');
+      setLinkPending(true);
 
       const expiryLabel = expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
       document.querySelector('.warn-box span').textContent = `View once only · Expires in ${expiryLabel} if unopened · Never stored in plaintext`;
@@ -224,6 +306,7 @@
   document.getElementById('link-copy').addEventListener('click', () => {
     const val = document.getElementById('link-output').value;
     copyText(val, document.getElementById('link-copy'), document.querySelector('#link-copy span'));
+    setLinkPending(false);
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
