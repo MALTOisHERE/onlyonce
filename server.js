@@ -67,7 +67,7 @@ const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_
 const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
 
 // ── Body parser ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '2mb', strict: true }));
+app.use(express.json({ limit: '4mb', strict: true }));
 
 // ── Static files (HTML pages served no-store) ──────────────────────────────
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -144,8 +144,8 @@ const K2_B64_LEN  = 44;
 const MIN_CT_LEN      = 24;
 // Max plaintext 10 KB + 16-byte GCM tag → ≤ 13 720 base-64 chars
 const MAX_CT_LEN      = 13_720;
-// Max file 1 MB + 16-byte GCM tag → ≤ 1 398 132 base-64 chars
-const MAX_FILE_CT_LEN = 1_398_132;
+// Max file 2 MB + 16-byte GCM tag → ≤ 2 796 224 base-64 chars
+const MAX_FILE_CT_LEN = 2_796_224;
 const MAX_FILENAME_LEN = 255;
 
 // ── Startup checks ────────────────────────────────────────────────────────────

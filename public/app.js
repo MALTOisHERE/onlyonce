@@ -135,7 +135,7 @@
     'reg', 'inf', 'cpl', 'dll', 'so', 'dylib',
     'jar', 'apk', 'ipa', 'dmg', 'pkg', 'deb', 'rpm',
   ]);
-  const MAX_FILE_BYTES = 1 * 1024 * 1024;
+  const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
   let _selectedFile = null;
 
@@ -320,7 +320,7 @@
         return;
       }
       if (_selectedFile.size > MAX_FILE_BYTES) {
-        showError('File is too large. Maximum size is 1 MB.');
+        showError('File is too large. Maximum size is 2 MB.');
         return;
       }
       fileToEncrypt = _selectedFile;
