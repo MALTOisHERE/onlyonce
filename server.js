@@ -67,7 +67,7 @@ const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_
 const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
 
 // ── Body parser ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '16kb', strict: true }));
+app.use(express.json({ limit: '2mb', strict: true }));
 
 // ── Static files (HTML pages served no-store) ──────────────────────────────
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -141,9 +141,12 @@ const IV_B64_LEN  = 16;
 // AES-256 key half (32 bytes) → exactly 44 base-64 chars
 const K2_B64_LEN  = 44;
 // AES-GCM output is always at least 16-byte auth tag → min 24 base-64 chars
-const MIN_CT_LEN  = 24;
+const MIN_CT_LEN      = 24;
 // Max plaintext 10 KB + 16-byte GCM tag → ≤ 13 720 base-64 chars
-const MAX_CT_LEN  = 13_720;
+const MAX_CT_LEN      = 13_720;
+// Max file 1 MB + 16-byte GCM tag → ≤ 1 398 132 base-64 chars
+const MAX_FILE_CT_LEN = 1_398_132;
+const MAX_FILENAME_LEN = 255;
 
 // ── Startup checks ────────────────────────────────────────────────────────────
 if (process.env.CIPHER_KEY && !/^[0-9a-f]{64}$/i.test(process.env.CIPHER_KEY)) {
@@ -192,7 +195,7 @@ const resendClient = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_
 // K2_stored = K2 XOR HMAC(K3, id) at creation time.
 // At reveal: key = K1 XOR K2_stored XOR HMAC(K3, id) = K1 XOR K2.
 // Web Crypto AES-GCM output = ciphertext || 16-byte auth tag.
-function serverDecrypt(ciphertextB64, ivB64, k1B64, k2StoredB64, id) {
+function serverDecrypt(ciphertextB64, ivB64, k1B64, k2StoredB64, id, raw = false) {
   const ct       = Buffer.from(ciphertextB64, 'base64');
   const iv       = Buffer.from(ivB64,         'base64');
   const k1       = Buffer.from(k1B64,         'base64');
@@ -207,7 +210,8 @@ function serverDecrypt(ciphertextB64, ivB64, k1B64, k2StoredB64, id) {
 
   const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
   decipher.setAuthTag(authTag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  const result = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  return raw ? result : result.toString('utf8');
 }
 
 // ── Email (Resend) ───────────────────────────────────────────────────────────
@@ -245,7 +249,10 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv, k2, recipientEmail, expiresIn: expiresInRaw } = body;
+  const { ciphertext, iv, k2, recipientEmail, expiresIn: expiresInRaw, isFile, filename: rawFilename, mimetype: rawMimetype } = body;
+
+  const isFileSecret = isFile === true;
+  const maxCtLen = isFileSecret ? MAX_FILE_CT_LEN : MAX_CT_LEN;
 
   if (
     typeof ciphertext !== 'string' || typeof iv !== 'string' || typeof k2 !== 'string' ||
@@ -254,9 +261,18 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     iv.length !== IV_B64_LEN ||
     k2.length !== K2_B64_LEN ||
     ciphertext.length < MIN_CT_LEN ||
-    ciphertext.length > MAX_CT_LEN
+    ciphertext.length > maxCtLen
   ) {
     return res.status(400).json({ error: 'Invalid payload.' });
+  }
+
+  if (isFileSecret) {
+    if (typeof rawFilename !== 'string' || !rawFilename.trim() || rawFilename.length > MAX_FILENAME_LEN) {
+      return res.status(400).json({ error: 'Invalid filename.' });
+    }
+    if (typeof rawMimetype !== 'string' || !rawMimetype.trim() || rawMimetype.length > 127) {
+      return res.status(400).json({ error: 'Invalid mimetype.' });
+    }
   }
 
   if (secrets.size >= MAX_SECRETS) {
@@ -309,7 +325,9 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     ({ encCt: storedCt, ctIv } = encryptWithK4(ciphertext));
   }
 
-  secrets.set(id, { ciphertext: storedCt, ctIv, iv, k2: k2Stored, expiresAt, otpHash, otpAttempts: 0 });
+  const filename = isFileSecret ? rawFilename.trim() : null;
+  const mimetype = isFileSecret ? rawMimetype.trim() : null;
+  secrets.set(id, { ciphertext: storedCt, ctIv, iv, k2: k2Stored, expiresAt, otpHash, otpAttempts: 0, isFile: isFileSecret, filename, mimetype });
 
   stats.secretsCreated++;
   if (otpHash) stats.secretsWithEmail++;
@@ -369,18 +387,21 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   }
 
   // Reconstruct key, decrypt, consume secret atomically
-  let plaintext;
   try {
-    // Unwrap K4 layer first — get back the original browser ciphertext
     const rawCt = (K4 && secret.ctIv) ? decryptWithK4(secret.ciphertext, secret.ctIv) : secret.ciphertext;
-    plaintext = serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id);
+    if (secret.isFile) {
+      const fileBuf = serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id, true);
+      secrets.delete(id);
+      stats.secretsRevealed++;
+      return res.json({ data: fileBuf.toString('base64'), filename: secret.filename, mimetype: secret.mimetype });
+    }
+    const plaintext = serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id);
+    secrets.delete(id);
+    stats.secretsRevealed++;
+    res.json({ plaintext });
   } catch {
     return res.status(400).json({ error: 'Decryption failed. The link may be corrupted.' });
   }
-
-  secrets.delete(id);
-  stats.secretsRevealed++;
-  res.json({ plaintext });
 });
 
 // ── GET /api/stats ───────────────────────────────────────────────────────────

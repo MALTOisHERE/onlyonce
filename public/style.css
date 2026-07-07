@@ -1324,12 +1324,162 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .btn-home:hover { border-color: var(--border-hi); background: var(--surface-3); }
 
 
+/* ── File drop zone ── */
+.file-drop-zone {
+  border: 1.5px dashed var(--border-hi);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), background var(--transition);
+  margin-bottom: 4px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file-drop-zone.drag-over {
+  border-color: var(--green);
+  background: var(--green-dim);
+}
+.file-input-hidden { display: none; }
+.file-drop-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 20px;
+  color: var(--text-dim);
+  text-align: center;
+  pointer-events: none;
+}
+.file-drop-inner svg { color: var(--text-dim); margin-bottom: 4px; }
+.file-drop-text { font-size: .9rem; font-weight: 500; color: var(--text-muted); }
+.file-drop-sub  { font-size: .82rem; color: var(--text-dim); pointer-events: auto; }
+.file-drop-hint { font-size: .75rem; color: var(--text-dim); margin-top: 2px; }
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--green);
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-link:hover { opacity: .8; }
+.file-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  width: 100%;
+}
+.file-selected-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: var(--green-dim);
+  border: 1px solid rgba(97,207,90,.2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--green);
+}
+.file-selected-meta { flex: 1; min-width: 0; }
+.file-selected-name {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.file-selected-size { font-size: .75rem; color: var(--text-dim); }
+.btn-file-clear {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-file-clear:hover { border-color: var(--danger-border); color: var(--danger); }
+
+/* ── File reveal state ── */
+.file-reveal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 44px 36px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,.45);
+}
+.file-reveal-icon {
+  width: 68px;
+  height: 68px;
+  background: var(--green-dim);
+  border: 1px solid rgba(97,207,90,.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--green);
+}
+.file-reveal-label {
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.file-reveal-name {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 24px;
+  word-break: break-all;
+}
+.file-reveal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin-top: 16px;
+  margin-bottom: 0;
+  line-height: 1.7;
+}
+.file-reveal-meta svg { opacity: .75; flex-shrink: 0; }
+.btn-download-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--green);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #000;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: .92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-download-file:hover { background: var(--green-dark); }
+
 /* ── Utilities ── */
 .hidden { display: none !important; }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
-  .card, .reveal-card, .secret-card, .expired-card, .cleared-card { padding: 22px 20px; }
+  .card, .reveal-card, .secret-card, .expired-card, .cleared-card, .file-reveal-card { padding: 22px 20px; }
   .features { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .feature { padding: 14px 10px; gap: 8px; }
   .feature-icon { width: 38px; height: 38px; }

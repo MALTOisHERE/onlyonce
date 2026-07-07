@@ -127,6 +127,66 @@
     if (val) copyText(val, document.getElementById('gen-copy'));
   });
 
+  // ── File tab ───────────────────────────────────────────────────────────────
+  const BLOCKED_EXTENSIONS = new Set([
+    'exe', 'bat', 'cmd', 'com', 'msi', 'msp', 'msc', 'scr', 'pif', 'lnk',
+    'ps1', 'psm1', 'psd1', 'vbs', 'vbe', 'jse', 'wsf', 'wsh', 'hta',
+    'sh', 'bash', 'zsh', 'fish', 'csh', 'ksh',
+    'reg', 'inf', 'cpl', 'dll', 'so', 'dylib',
+    'jar', 'apk', 'ipa', 'dmg', 'pkg', 'deb', 'rpm',
+  ]);
+  const MAX_FILE_BYTES = 1 * 1024 * 1024;
+
+  let _selectedFile = null;
+
+  function formatBytes(n) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function setSelectedFile(file) {
+    _selectedFile = file;
+    const inner = document.getElementById('file-drop-inner');
+    const info  = document.getElementById('file-selected-info');
+    if (file) {
+      document.getElementById('file-selected-name').textContent = file.name;
+      document.getElementById('file-selected-size').textContent = formatBytes(file.size);
+      inner.classList.add('hidden');
+      info.classList.remove('hidden');
+    } else {
+      inner.classList.remove('hidden');
+      info.classList.add('hidden');
+    }
+  }
+
+  const dropZone  = document.getElementById('file-drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  document.getElementById('btn-file-pick').addEventListener('click', () => fileInput.click());
+  document.getElementById('btn-file-clear').addEventListener('click', () => {
+    setSelectedFile(null);
+    fileInput.value = '';
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setSelectedFile(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', e => {
+    if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+  });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) setSelectedFile(file);
+  });
+
   // ── Byte counter ───────────────────────────────────────────────────────────
   const secretInput  = document.getElementById('secret-input');
   const byteCounter  = document.getElementById('byte-counter');
@@ -165,6 +225,25 @@
     const k2 = new Uint8Array(32);
     for (let i = 0; i < 32; i++) k2[i] = rawKey[i] ^ k1[i];
 
+    return {
+      ciphertext: toB64(new Uint8Array(ciphertextBuf)),
+      iv:         toB64(iv),
+      k1:         toB64(k1),
+      k2:         toB64(k2),
+    };
+  }
+
+  async function encryptFile(file) {
+    const encoded = new Uint8Array(await file.arrayBuffer());
+    const key = await crypto.subtle.generateKey(
+      { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+    );
+    const iv           = crypto.getRandomValues(new Uint8Array(12));
+    const ciphertextBuf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+    const rawKey        = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+    const k1 = crypto.getRandomValues(new Uint8Array(32));
+    const k2 = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) k2[i] = rawKey[i] ^ k1[i];
     return {
       ciphertext: toB64(new Uint8Array(ciphertextBuf)),
       iv:         toB64(iv),
@@ -228,18 +307,33 @@
 
     const activeTab = document.querySelector('.tab.active').dataset.tab;
     let secret = '';
+    let fileToEncrypt = null;
 
-    if (activeTab === 'enter') {
-      secret = document.getElementById('secret-input').value;
+    if (activeTab === 'file') {
+      if (!_selectedFile) {
+        showError('Please select or drop a file first.');
+        return;
+      }
+      const ext = _selectedFile.name.includes('.') ? _selectedFile.name.split('.').pop().toLowerCase() : '';
+      if (BLOCKED_EXTENSIONS.has(ext)) {
+        showError(`.${ext} files are not allowed for security reasons.`);
+        return;
+      }
+      if (_selectedFile.size > MAX_FILE_BYTES) {
+        showError('File is too large. Maximum size is 1 MB.');
+        return;
+      }
+      fileToEncrypt = _selectedFile;
     } else {
-      secret = document.getElementById('gen-preview').value.trim();
-    }
-
-    if (!secret) {
-      showError(activeTab === 'enter'
-        ? 'Please enter a secret before creating a link.'
-        : 'Click Generate first to create a password.');
-      return;
+      secret = activeTab === 'enter'
+        ? document.getElementById('secret-input').value
+        : document.getElementById('gen-preview').value.trim();
+      if (!secret) {
+        showError(activeTab === 'enter'
+          ? 'Please enter a secret before creating a link.'
+          : 'Click Generate first to create a password.');
+        return;
+      }
     }
 
     const recipientEmail = document.getElementById('recipient-email').value.trim();
@@ -253,11 +347,19 @@
     btnCreate.textContent = 'Encrypting…';
 
     try {
-      const { ciphertext, iv, k1, k2 } = await encryptSecret(secret);
+      const { ciphertext, iv, k1, k2 } = fileToEncrypt
+        ? await encryptFile(fileToEncrypt)
+        : await encryptSecret(secret);
+
       const expiresIn = parseInt(document.querySelector('input[name="expiry"]:checked').value, 10);
 
       const payload = { ciphertext, iv, k2, expiresIn };
       if (recipientEmail) payload.recipientEmail = recipientEmail;
+      if (fileToEncrypt) {
+        payload.isFile   = true;
+        payload.filename = fileToEncrypt.name;
+        payload.mimetype = fileToEncrypt.type || 'application/octet-stream';
+      }
 
       const res = await fetch('/api/secret', {
         method:  'POST',
@@ -285,9 +387,10 @@
       const expiryLabel = expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
       document.querySelector('.warn-box span').textContent = `View once only · Expires in ${expiryLabel} if unopened · Never stored in plaintext`;
 
-      // Clear plaintext and email from inputs
-      document.getElementById('secret-input').value  = '';
-      document.getElementById('gen-preview').value   = '';
+      if (!fileToEncrypt) {
+        document.getElementById('secret-input').value = '';
+        document.getElementById('gen-preview').value  = '';
+      }
       document.getElementById('recipient-email').value = '';
 
     } catch (err) {

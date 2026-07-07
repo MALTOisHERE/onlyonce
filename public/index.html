@@ -41,6 +41,7 @@
         <div class="tabs">
           <button class="tab active" data-tab="enter">Enter Secret</button>
           <button class="tab" data-tab="generate">Generate Password</button>
+          <button class="tab" data-tab="file">Share File</button>
         </div>
 
         <!-- Enter Tab -->
@@ -101,6 +102,31 @@
           </div>
 
           <button class="btn-secondary" id="btn-generate">Generate</button>
+        </div>
+
+        <!-- File Tab -->
+        <div class="tab-content" id="tab-file">
+          <div class="file-drop-zone" id="file-drop-zone">
+            <input type="file" id="file-input" class="file-input-hidden" tabindex="-1">
+            <div class="file-drop-inner" id="file-drop-inner">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p class="file-drop-text">Drop a file here</p>
+              <p class="file-drop-sub">or <button class="btn-link" id="btn-file-pick" type="button">browse files</button></p>
+              <p class="file-drop-hint">Max 1 MB &nbsp;&middot;&nbsp; Encrypted before upload</p>
+            </div>
+            <div class="file-selected-info hidden" id="file-selected-info">
+              <div class="file-selected-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="file-selected-meta">
+                <p class="file-selected-name" id="file-selected-name"></p>
+                <p class="file-selected-size" id="file-selected-size"></p>
+              </div>
+              <button class="btn-file-clear" id="btn-file-clear" type="button" aria-label="Remove file">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="email-field">

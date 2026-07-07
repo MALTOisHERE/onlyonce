@@ -13,6 +13,26 @@
     setState('state-expired');
   }
 
+  function showFile(dataB64, filename, mimetype) {
+    document.getElementById('file-reveal-name').textContent = filename;
+    setState('state-file');
+
+    document.getElementById('btn-download-file').onclick = () => {
+      const bytes = atob(dataB64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mimetype });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+  }
+
   function showSecret(plaintext) {
     document.getElementById('secret-text').value = plaintext;
     setState('state-secret');
@@ -83,9 +103,13 @@
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const { plaintext } = await res.json();
+      const data = await res.json();
       onDone?.();
-      showSecret(plaintext);
+      if (data.data !== undefined) {
+        showFile(data.data, data.filename, data.mimetype);
+      } else {
+        showSecret(data.plaintext);
+      }
     } catch (err) {
       onDone?.();
       showExpired('Something Went Wrong', 'Could not retrieve or decrypt the secret. The link may be malformed or have been tampered with.');
