@@ -144,4 +144,6 @@ blink/
 
 ## License
 
-MIT
+[AGPL-3.0](LICENSE)
+
+Blink is free software: you can use, self-host, modify, and redistribute it under the terms of the GNU Affero General Public License v3. If you run a modified version as a network service, you must make your modified source available to its users. Self-hosting is and will always be fully featured and free.
