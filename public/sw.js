@@ -1,5 +1,5 @@
-const CACHE = 'blink-v1';
-const STATIC = ['/style.css', '/app.js', '/logo.png', '/logo-192.png', '/logo-512.png', '/about.html'];
+const CACHE = 'blink-v2';
+const STATIC = ['/style.css', '/app.js', '/logo.png', '/logo-192.png', '/logo-512.png', '/about.html', '/fonts/space-grotesk.woff2'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));

@@ -294,6 +294,29 @@
     });
   }
 
+  // ── Pro modal ──────────────────────────────────────────────────────────────
+  function showProModal(featureName) {
+    document.getElementById('pro-feature-name').textContent =
+      featureName.charAt(0).toUpperCase() + featureName.slice(1);
+    document.getElementById('pro-overlay').classList.remove('hidden');
+  }
+
+  document.querySelectorAll('[data-pro-feature]').forEach(el => {
+    el.addEventListener('click', e => {
+      e.preventDefault();
+      showProModal(el.dataset.proFeature);
+    });
+  });
+
+  const proOverlay = document.getElementById('pro-overlay');
+  document.getElementById('pro-modal-close').addEventListener('click', () => proOverlay.classList.add('hidden'));
+  proOverlay.addEventListener('click', e => { if (e.target === proOverlay) proOverlay.classList.add('hidden'); });
+  document.getElementById('pro-modal-notify').addEventListener('click', () => {
+    window.open('https://github.com/MALTOisHERE/onlyonce', '_blank', 'noopener');
+    proOverlay.classList.add('hidden');
+  });
+  document.getElementById('btn-pro-cta').addEventListener('click', () => showProModal('Blink Pro'));
+
   btnCreate.addEventListener('click', async () => {
     if (linkPending) {
       const discard = await confirmDiscard(

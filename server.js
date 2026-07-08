@@ -33,7 +33,7 @@ app.use((req, res, next) => {
       "default-src 'none'",
       "script-src 'self'",
       "style-src 'self'",
-      "font-src 'none'",
+      "font-src 'self'",
       "img-src 'self' data:",
       "connect-src 'self'",
       "manifest-src 'self'",

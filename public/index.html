@@ -33,8 +33,17 @@
           Install app
         </button>
       </div>
-      <p class="tagline">Share secrets that disappear. Once seen, forever gone.</p>
+      <p class="tagline">Once seen, forever gone.</p>
     </header>
+
+    <section class="hero">
+      <div class="hero-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        AES-256 encrypted &nbsp;&middot;&nbsp; Zero knowledge &nbsp;&middot;&nbsp; Open source
+      </div>
+      <h1 class="hero-title">Share secrets that <span class="hero-flash">disappear</span>.</h1>
+      <p class="hero-sub">Send passwords, keys, and files through encrypted links that self-destruct the moment they are seen.</p>
+    </section>
 
     <main class="main">
       <div class="card">
@@ -112,7 +121,7 @@
               <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               <p class="file-drop-text">Drop a file here</p>
               <p class="file-drop-sub">or <button class="btn-link" id="btn-file-pick" type="button">browse files</button></p>
-              <p class="file-drop-hint">Max 2 MB &nbsp;&middot;&nbsp; Encrypted before upload</p>
+              <p class="file-drop-hint">Max 2 MB &nbsp;&middot;&nbsp; Encrypted before upload &nbsp;&middot;&nbsp; <button class="btn-link-pro" type="button" data-pro-feature="25 MB files">25 MB with <span class="pro-badge">PRO</span></button></p>
             </div>
             <div class="file-selected-info hidden" id="file-selected-info">
               <div class="file-selected-icon">
@@ -137,6 +146,15 @@
           <p class="email-hint">If set, recipient must enter a code sent to this email to reveal the secret.</p>
         </div>
 
+        <div class="email-field">
+          <button class="pro-field-lock" type="button" data-pro-feature="passphrase protection">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span class="pro-field-lock-text">Passphrase protection</span>
+            <span class="pro-badge">PRO</span>
+          </button>
+          <p class="email-hint">Require a passphrase you share separately, no email needed.</p>
+        </div>
+
         <div class="expiry-field">
           <span class="expiry-label">Expires after</span>
           <div class="expiry-pills">
@@ -144,6 +162,22 @@
             <label class="expiry-pill"><input type="radio" name="expiry" value="6"><span>6 hours</span></label>
             <label class="expiry-pill"><input type="radio" name="expiry" value="24" checked><span>24 hours</span></label>
             <label class="expiry-pill"><input type="radio" name="expiry" value="48"><span>48 hours</span></label>
+            <button class="expiry-pill pill-locked" type="button" data-pro-feature="7-day expiry">
+              <span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 7 days</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="expiry-field">
+          <span class="expiry-label">Views allowed</span>
+          <div class="expiry-pills">
+            <label class="expiry-pill"><input type="radio" name="views" value="1" checked><span>1 view</span></label>
+            <button class="expiry-pill pill-locked" type="button" data-pro-feature="multi-view links">
+              <span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 3 views</span>
+            </button>
+            <button class="expiry-pill pill-locked" type="button" data-pro-feature="multi-view links">
+              <span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 5 views</span>
+            </button>
           </div>
         </div>
 
@@ -206,6 +240,41 @@
         <div class="stat-sub">end-to-end encrypted &nbsp;·&nbsp; viewed once &nbsp;·&nbsp; then gone forever</div>
       </div>
 
+      <section class="pricing" id="pricing">
+        <h2 class="pricing-title">Need more room?</h2>
+        <p class="pricing-sub">Blink is free forever. Pro adds flexibility when you need it.</p>
+        <div class="pricing-grid">
+          <div class="price-card">
+            <div class="price-card-name">Free</div>
+            <div class="price-card-price">$0<span class="price-card-period">forever</span></div>
+            <ul class="price-card-features">
+              <li>Text secrets up to 10 KB</li>
+              <li>Files up to 2 MB</li>
+              <li>View once, then gone</li>
+              <li>Expiry up to 48 hours</li>
+              <li>Email code verification</li>
+              <li>End-to-end encryption</li>
+            </ul>
+            <div class="price-card-cta price-card-cta-current">Your current plan</div>
+          </div>
+          <div class="price-card price-card-pro">
+            <div class="price-card-flag">PRO</div>
+            <div class="price-card-name">Pro</div>
+            <div class="price-card-price">$3.99<span class="price-card-period">/ month</span></div>
+            <ul class="price-card-features">
+              <li>Everything in Free</li>
+              <li>Files up to 25 MB</li>
+              <li>Expiry up to 7 days</li>
+              <li>Multi-view links (up to 5 views)</li>
+              <li>Passphrase protection</li>
+              <li>Email notification when viewed</li>
+              <li>API access</li>
+            </ul>
+            <button class="price-card-cta price-card-cta-pro" id="btn-pro-cta" type="button">Coming soon</button>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <div class="modal-overlay hidden" id="email-confirm-overlay">
@@ -258,8 +327,30 @@
       </div>
     </div>
 
+    <div class="modal-overlay hidden" id="pro-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pro-modal-title">
+        <div class="modal-header modal-header-green">
+          <div class="modal-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <h3 class="modal-title" id="pro-modal-title">This is a Pro feature</h3>
+        </div>
+        <div class="modal-content">
+          <p class="modal-body"><span id="pro-feature-name">This feature</span> is part of Blink Pro: 25 MB files, 7-day expiry, multi-view links, passphrase protection, view notifications, and API access.</p>
+          <p class="modal-body modal-body-hint">Pro is launching soon for $3.99/month. The free plan stays free forever.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" id="pro-modal-close">Maybe later</button>
+          <button class="btn-modal-confirm" id="pro-modal-notify">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Notify me at launch
+          </button>
+        </div>
+      </div>
+    </div>
+
     <footer class="footer">
-      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
+      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; <a href="#pricing" class="footer-link">Pro</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
     </footer>
   </div>
 
