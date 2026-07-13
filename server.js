@@ -66,8 +66,69 @@ const createLimiter = new RateLimiter(60_000,    parseInt(process.env.CREATE_RAT
 const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_LIMIT   || '30',  10));
 const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
 
+// ── Blink Pro licensing (Lemon Squeezy) ─────────────────────────────────────
+// Validated against the Lemon Squeezy license API. Results cached in memory.
+// BLINK_PRO_DEV_KEY grants Pro locally for development/testing.
+const LS_STORE_ID    = process.env.LS_STORE_ID   ? Number(process.env.LS_STORE_ID)   : null;
+const LS_PRODUCT_ID  = process.env.LS_PRODUCT_ID ? Number(process.env.LS_PRODUCT_ID) : null;
+const PRO_DEV_KEY    = process.env.BLINK_PRO_DEV_KEY || null;
+const LICENSE_KEY_RE = /^[A-Za-z0-9-]{8,64}$/;
+const LICENSE_CACHE_TTL = 3_600_000; // 1 hour
+const licenseCache = new Map(); // key -> { valid, exp }
+
+async function checkLicense(key) {
+  if (typeof key !== 'string' || !LICENSE_KEY_RE.test(key)) return false;
+  if (PRO_DEV_KEY && key === PRO_DEV_KEY) return true;
+
+  const cached = licenseCache.get(key);
+  if (cached && Date.now() < cached.exp) return cached.valid;
+
+  let valid = false;
+  try {
+    const resp = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
+      method:  'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ license_key: key }),
+    });
+    const data   = await resp.json();
+    const status = data?.license_key?.status;
+    valid = data?.valid === true
+      && status !== 'expired' && status !== 'disabled'
+      && (!LS_STORE_ID   || data?.meta?.store_id   === LS_STORE_ID)
+      && (!LS_PRODUCT_ID || data?.meta?.product_id === LS_PRODUCT_ID);
+  } catch (err) {
+    console.error('[license]', err.message);
+    // Lemon Squeezy unreachable: honour a stale cache entry rather than lock out a paying user
+    if (cached) return cached.valid;
+    return false;
+  }
+
+  licenseCache.set(key, { valid, exp: Date.now() + LICENSE_CACHE_TTL });
+  if (licenseCache.size > 5_000) {
+    licenseCache.delete(licenseCache.keys().next().value);
+  }
+  return valid;
+}
+
 // ── Body parser ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '4mb', strict: true }));
+// Pro uploads (25 MB files) need a larger body limit. The license is validated
+// from the header BEFORE the large parser is chosen, so anonymous requests can
+// never send more than the free-tier limit.
+const jsonSmall = express.json({ limit: '4mb',  strict: true });
+const jsonLarge = express.json({ limit: '40mb', strict: true });
+app.use((req, res, next) => {
+  const headerKey = req.headers['x-license-key'];
+  if (!headerKey) {
+    req.isPro = false;
+    return jsonSmall(req, res, next);
+  }
+  checkLicense(String(headerKey).trim())
+    .then(ok => {
+      req.isPro = ok;
+      return (ok ? jsonLarge : jsonSmall)(req, res, next);
+    })
+    .catch(next);
+});
 
 // ── Static files (HTML pages served no-store) ──────────────────────────────
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -83,8 +144,13 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // ── In-memory store ─────────────────────────────────────────────────────────
 const secrets     = new Map();
 const MAX_SECRETS      = 10_000;
-const ALLOWED_TTL_HOURS = new Set([1, 6, 24, 48]);
+const ALLOWED_TTL_HOURS     = new Set([1, 6, 24, 48]);
+const ALLOWED_TTL_HOURS_PRO = new Set([1, 6, 24, 48, 168]);
 const DEFAULT_TTL_HOURS = 48;
+const MAX_VIEWS_PRO       = 5;
+const PASSPHRASE_MIN_LEN  = 4;
+const PASSPHRASE_MAX_LEN  = 128;
+const MAX_AUTH_ATTEMPTS   = 5;
 
 // ── Statistics ───────────────────────────────────────────────────────────────
 const STATS_FILE = process.env.STATS_FILE || path.join(__dirname, 'data', 'stats.json');
@@ -146,6 +212,8 @@ const MIN_CT_LEN      = 24;
 const MAX_CT_LEN      = 13_720;
 // Max file 2 MB + 16-byte GCM tag → ≤ 2 796 224 base-64 chars
 const MAX_FILE_CT_LEN = 2_796_224;
+// Pro: max file 25 MB + 16-byte GCM tag → ≤ 34 952 556 base-64 chars
+const MAX_FILE_CT_LEN_PRO = 34_952_556;
 const MAX_FILENAME_LEN = 255;
 
 // ── Startup checks ────────────────────────────────────────────────────────────
@@ -242,6 +310,43 @@ async function sendOTPEmail(to, otp) {
   if (error) throw new Error(error.message);
 }
 
+async function sendViewNotification(to, viewsLeft) {
+  const remaining = viewsLeft > 0
+    ? `It can be viewed ${viewsLeft} more time${viewsLeft === 1 ? '' : 's'} before it is destroyed.`
+    : 'It has now been permanently deleted from the server.';
+  const { error } = await resendClient.emails.send({
+    from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
+    to,
+    subject: 'Your Blink secret was viewed',
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px;text-align:center">
+        <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
+          <tr>
+            <td style="vertical-align:middle;padding-right:10px">
+              <img src="https://blink.malto.icu/logo.png" alt="Blink" style="width:44px;height:44px;display:block">
+            </td>
+            <td style="vertical-align:middle;text-align:left">
+              <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
+              <div style="color:#7A8599;font-size:11px">by MALTO</div>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:0 0 12px;font-size:15px">A secret you shared on Blink was just viewed.</p>
+        <p style="margin:0;font-size:13px;color:#7A8599">${remaining}</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(error.message);
+}
+
+// ── POST /api/license/validate ──────────────────────────────────────────────
+app.post('/api/license/validate', createLimiter.middleware(), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const key = typeof req.body?.licenseKey === 'string' ? req.body.licenseKey.trim() : '';
+  const valid = await checkLicense(key);
+  res.json({ valid });
+});
+
 // ── POST /api/secret ────────────────────────────────────────────────────────
 app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
   const body = req.body;
@@ -249,10 +354,17 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     return res.status(400).json({ error: 'Invalid payload.' });
   }
 
-  const { ciphertext, iv, k2, recipientEmail, expiresIn: expiresInRaw, isFile, filename: rawFilename, mimetype: rawMimetype } = body;
+  const {
+    ciphertext, iv, k2, recipientEmail, expiresIn: expiresInRaw,
+    isFile, filename: rawFilename, mimetype: rawMimetype,
+    views: viewsRaw, passphrase: passphraseRaw, notifyEmail: notifyEmailRaw,
+  } = body;
 
+  const isPro = req.isPro === true;
   const isFileSecret = isFile === true;
-  const maxCtLen = isFileSecret ? MAX_FILE_CT_LEN : MAX_CT_LEN;
+  const maxCtLen = isFileSecret
+    ? (isPro ? MAX_FILE_CT_LEN_PRO : MAX_FILE_CT_LEN)
+    : MAX_CT_LEN;
 
   if (
     typeof ciphertext !== 'string' || typeof iv !== 'string' || typeof k2 !== 'string' ||
@@ -277,6 +389,51 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
 
   if (secrets.size >= MAX_SECRETS) {
     return res.status(503).json({ error: 'Server is at capacity. Try again shortly.' });
+  }
+
+  // ── Pro-gated options ──
+  let viewsAllowed = 1;
+  if (viewsRaw !== undefined) {
+    const v = Number(viewsRaw);
+    if (!Number.isInteger(v) || v < 1 || v > MAX_VIEWS_PRO) {
+      return res.status(400).json({ error: 'Invalid views value.' });
+    }
+    if (v > 1 && !isPro) {
+      return res.status(403).json({ error: 'pro_required', feature: 'multi-view links' });
+    }
+    viewsAllowed = v;
+  }
+
+  let passHash = null;
+  let passSalt = null;
+  if (passphraseRaw !== undefined) {
+    if (!isPro) {
+      return res.status(403).json({ error: 'pro_required', feature: 'passphrase protection' });
+    }
+    if (typeof passphraseRaw !== 'string' ||
+        passphraseRaw.length < PASSPHRASE_MIN_LEN || passphraseRaw.length > PASSPHRASE_MAX_LEN) {
+      return res.status(400).json({ error: `Passphrase must be ${PASSPHRASE_MIN_LEN}-${PASSPHRASE_MAX_LEN} characters.` });
+    }
+    passSalt = crypto.randomBytes(16);
+    passHash = crypto.scryptSync(passphraseRaw, passSalt, 32);
+  }
+
+  let notifyEmail = null;
+  if (notifyEmailRaw !== undefined) {
+    if (!isPro) {
+      return res.status(403).json({ error: 'pro_required', feature: 'view notifications' });
+    }
+    if (!resendClient) {
+      return res.status(503).json({ error: 'Email is not configured on this server.' });
+    }
+    if (typeof notifyEmailRaw !== 'string' || !EMAIL_RE.test(notifyEmailRaw)) {
+      return res.status(400).json({ error: 'Invalid notification email address.' });
+    }
+    notifyEmail = notifyEmailRaw;
+  }
+
+  if (Number(expiresInRaw) === 168 && !isPro) {
+    return res.status(403).json({ error: 'pro_required', feature: '7-day expiry' });
   }
 
   let otpHash = null;
@@ -304,7 +461,8 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
     }
   }
 
-  const expiresInHours = ALLOWED_TTL_HOURS.has(Number(expiresInRaw)) ? Number(expiresInRaw) : DEFAULT_TTL_HOURS;
+  const allowedTtl = isPro ? ALLOWED_TTL_HOURS_PRO : ALLOWED_TTL_HOURS;
+  const expiresInHours = allowedTtl.has(Number(expiresInRaw)) ? Number(expiresInRaw) : DEFAULT_TTL_HOURS;
   const id        = crypto.randomUUID();
   const expiresAt = Date.now() + expiresInHours * 3_600_000;
 
@@ -327,7 +485,16 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
 
   const filename = isFileSecret ? rawFilename.trim() : null;
   const mimetype = isFileSecret ? rawMimetype.trim() : null;
-  secrets.set(id, { ciphertext: storedCt, ctIv, iv, k2: k2Stored, expiresAt, otpHash, otpAttempts: 0, isFile: isFileSecret, filename, mimetype });
+  secrets.set(id, {
+    ciphertext: storedCt, ctIv, iv, k2: k2Stored, expiresAt,
+    otpHash, otpAttempts: 0,
+    isFile: isFileSecret, filename, mimetype,
+    viewsLeft: viewsAllowed,
+    passHash: passHash ? passHash.toString('hex') : null,
+    passSalt: passSalt ? passSalt.toString('hex') : null,
+    passAttempts: 0,
+    notifyEmail,
+  });
 
   stats.secretsCreated++;
   if (otpHash) stats.secretsWithEmail++;
@@ -360,6 +527,31 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     return res.status(410).json({ error: 'expired' });
   }
 
+  // Passphrase verification (Pro)
+  if (secret.passHash) {
+    const rawHeader = (req.headers['x-passphrase'] || '').trim();
+    if (!rawHeader) {
+      return res.status(403).json({ error: 'passphrase_required' });
+    }
+    let pass = '';
+    try { pass = decodeURIComponent(rawHeader); } catch { pass = rawHeader; }
+    const inputHash = crypto.scryptSync(
+      pass.slice(0, PASSPHRASE_MAX_LEN),
+      Buffer.from(secret.passSalt, 'hex'),
+      32
+    );
+    const passValid = crypto.timingSafeEqual(Buffer.from(secret.passHash, 'hex'), inputHash);
+    if (!passValid) {
+      secret.passAttempts++;
+      if (secret.passAttempts >= MAX_AUTH_ATTEMPTS) {
+        secrets.delete(id);
+        stats.secretsBruteForced++;
+        return res.status(410).json({ error: 'too_many_attempts' });
+      }
+      return res.status(403).json({ error: 'invalid_passphrase', attemptsLeft: MAX_AUTH_ATTEMPTS - secret.passAttempts });
+    }
+  }
+
   // OTP verification
   if (secret.otpHash) {
     const otp = (req.headers['x-otp'] || '').trim();
@@ -386,22 +578,45 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     }
   }
 
-  // Reconstruct key, decrypt, consume secret atomically
+  // Reconstruct key, decrypt, consume one view
   try {
     const rawCt = (K4 && secret.ctIv) ? decryptWithK4(secret.ciphertext, secret.ctIv) : secret.ciphertext;
+
+    let payload;
     if (secret.isFile) {
       const fileBuf = serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id, true);
-      secrets.delete(id);
-      stats.secretsRevealed++;
-      return res.json({ data: fileBuf.toString('base64'), filename: secret.filename, mimetype: secret.mimetype });
+      payload = { data: fileBuf.toString('base64'), filename: secret.filename, mimetype: secret.mimetype };
+    } else {
+      payload = { plaintext: serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id) };
     }
-    const plaintext = serverDecrypt(rawCt, secret.iv, k1B64, secret.k2, id);
-    secrets.delete(id);
+
+    // Multi-view (Pro): only destroy once all allowed views are consumed
+    secret.viewsLeft = (secret.viewsLeft ?? 1) - 1;
+    const viewsLeft = secret.viewsLeft;
+    if (viewsLeft <= 0) {
+      secrets.delete(id);
+    }
     stats.secretsRevealed++;
-    res.json({ plaintext });
+
+    if (secret.notifyEmail && resendClient) {
+      sendViewNotification(secret.notifyEmail, viewsLeft)
+        .then(() => { stats.emailsSent++; })
+        .catch(err => console.error('[email]', err.message));
+    }
+
+    payload.viewsLeft = viewsLeft;
+    res.json(payload);
   } catch {
     return res.status(400).json({ error: 'Decryption failed. The link may be corrupted.' });
   }
+});
+
+// ── GET /api/config ──────────────────────────────────────────────────────────
+// Public frontend configuration. The checkout URL is not a secret (it is a
+// public payment page) — env keeps it configurable per deployment.
+app.get('/api/config', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ proCheckoutUrl: process.env.PRO_CHECKOUT_URL || null });
 });
 
 // ── GET /api/stats ───────────────────────────────────────────────────────────
@@ -430,6 +645,12 @@ app.use((req, res) => {
 
 // ── Global error handler ────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    return res.status(413).json({ error: 'Payload too large.' });
+  }
+  if (err.status && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ error: 'Invalid request.' });
+  }
   console.error('[error]', err.message);
   res.status(500).json({ error: 'Internal server error.' });
 });
@@ -444,6 +665,9 @@ if (process.env.NODE_ENV !== 'test') {
   }
   if (!process.env.RESEND_API_KEY) {
     console.warn('[warn] RESEND_API_KEY not set — email OTP feature is disabled');
+  }
+  if (!process.env.LS_STORE_ID || !process.env.LS_PRODUCT_ID) {
+    console.warn('[warn] LS_STORE_ID / LS_PRODUCT_ID not set — Lemon Squeezy keys from ANY store would validate; Pro effectively limited to BLINK_PRO_DEV_KEY');
   }
   if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
     console.warn('[warn] HOST not set — HTTPS redirect will not work in production');

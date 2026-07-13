@@ -21,7 +21,7 @@
             <div class="logo-by">by MALTO</div>
           </div>
         </a>
-        <span class="logo-sep"></span>
+        <span class="logo-sep hidden"></span>
         <button id="btn-install" class="btn-install hidden" aria-label="Install Blink as an app">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Install app
@@ -76,7 +76,7 @@
 
           <div class="deleted-notice">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            This secret has been permanently deleted from our servers.
+            <span id="secret-notice-text">This secret has been permanently deleted from our servers.</span>
           </div>
           <div class="secret-new-link">
             <a href="/" class="btn-home">
@@ -104,6 +104,23 @@
         </div>
       </div>
 
+      <!-- Passphrase verification -->
+      <div class="view-state" id="state-passphrase">
+        <div class="otp-card">
+          <div class="otp-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h2>Passphrase required</h2>
+          <p>The sender protected this secret with a passphrase.<br>Enter it below to reveal the secret.</p>
+          <input type="password" id="passphrase-view-input" class="otp-input pass-input" placeholder="Enter passphrase" autocomplete="off" spellcheck="false">
+          <p class="otp-error hidden" id="passphrase-error">Invalid passphrase. Please try again.</p>
+          <button class="btn-primary" id="btn-passphrase-submit">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Unlock Secret
+          </button>
+        </div>
+      </div>
+
       <!-- File download state -->
       <div class="view-state" id="state-file">
         <div class="file-reveal-card">
@@ -121,7 +138,7 @@
           </button>
           <p class="file-reveal-meta">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Permanently deleted from our servers &nbsp;&middot;&nbsp;
+            <span id="file-notice-text">Permanently deleted from our servers</span> &nbsp;&middot;&nbsp;
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Only open files from people you trust
           </p>

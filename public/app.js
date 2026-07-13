@@ -1,6 +1,61 @@
 (() => {
   const MAX_SECRET_BYTES = 10 * 1024; // 10 KB
 
+  // ── Pro license state ──────────────────────────────────────────────────────
+  // Checkout URL comes from the server (PRO_CHECKOUT_URL env) so deployments
+  // configure their own store without touching code.
+  let proCheckoutUrl = null;
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(cfg => {
+      proCheckoutUrl = cfg.proCheckoutUrl || null;
+      if (!proCheckoutUrl) {
+        document.getElementById('pro-modal-buy')?.classList.add('hidden');
+      }
+    })
+    .catch(() => {});
+
+  let isPro = false;
+  let licenseKey = '';
+  try { licenseKey = localStorage.getItem('blink_license') || ''; } catch {}
+
+  async function validateLicense(key) {
+    try {
+      const res = await fetch('/api/license/validate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ licenseKey: key }),
+      });
+      const data = await res.json();
+      return data.valid === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function unlockProUI() {
+    isPro = true;
+    document.querySelectorAll('.pro-lock').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.pro-real').forEach(el => el.classList.remove('hidden'));
+    const hint = document.querySelector('.file-drop-hint');
+    if (hint) hint.innerHTML = 'Max 25 MB &nbsp;&middot;&nbsp; Encrypted before upload';
+    const cta = document.getElementById('btn-pro-cta');
+    if (cta) { cta.textContent = 'Your current plan'; cta.disabled = true; }
+    const freeCta = document.getElementById('free-plan-cta');
+    if (freeCta) freeCta.textContent = 'Included in Pro';
+  }
+
+  if (licenseKey) {
+    validateLicense(licenseKey).then(ok => {
+      if (ok) {
+        unlockProUI();
+      } else {
+        licenseKey = '';
+        try { localStorage.removeItem('blink_license'); } catch {}
+      }
+    });
+  }
+
   // ── Link pending guard ─────────────────────────────────────────────────────
   // True after a link is created, false once copied or result hidden voluntarily.
   let linkPending = false;
@@ -135,7 +190,7 @@
     'reg', 'inf', 'cpl', 'dll', 'so', 'dylib',
     'jar', 'apk', 'ipa', 'dmg', 'pkg', 'deb', 'rpm',
   ]);
-  const MAX_FILE_BYTES = 2 * 1024 * 1024;
+  const maxFileBytes = () => (isPro ? 25 : 2) * 1024 * 1024;
 
   let _selectedFile = null;
 
@@ -298,6 +353,7 @@
   function showProModal(featureName) {
     document.getElementById('pro-feature-name').textContent =
       featureName.charAt(0).toUpperCase() + featureName.slice(1);
+    document.getElementById('license-error').classList.add('hidden');
     document.getElementById('pro-overlay').classList.remove('hidden');
   }
 
@@ -311,11 +367,33 @@
   const proOverlay = document.getElementById('pro-overlay');
   document.getElementById('pro-modal-close').addEventListener('click', () => proOverlay.classList.add('hidden'));
   proOverlay.addEventListener('click', e => { if (e.target === proOverlay) proOverlay.classList.add('hidden'); });
-  document.getElementById('pro-modal-notify').addEventListener('click', () => {
-    window.open('https://github.com/MALTOisHERE/onlyonce', '_blank', 'noopener');
-    proOverlay.classList.add('hidden');
+  document.getElementById('pro-modal-buy').addEventListener('click', () => {
+    if (proCheckoutUrl) window.open(proCheckoutUrl, '_blank', 'noopener');
   });
   document.getElementById('btn-pro-cta').addEventListener('click', () => showProModal('Blink Pro'));
+
+  const licenseActivateBtn = document.getElementById('license-activate');
+  licenseActivateBtn.addEventListener('click', async () => {
+    const input = document.getElementById('license-input');
+    const errEl = document.getElementById('license-error');
+    const key   = input.value.trim();
+    if (!key) return;
+    errEl.classList.add('hidden');
+    licenseActivateBtn.disabled = true;
+    licenseActivateBtn.textContent = 'Checking…';
+    const ok = await validateLicense(key);
+    licenseActivateBtn.disabled = false;
+    licenseActivateBtn.textContent = 'Activate';
+    if (!ok) {
+      errEl.classList.remove('hidden');
+      return;
+    }
+    licenseKey = key;
+    try { localStorage.setItem('blink_license', key); } catch {}
+    unlockProUI();
+    proOverlay.classList.add('hidden');
+    showSuccess('Blink Pro activated. All Pro features are unlocked.');
+  });
 
   btnCreate.addEventListener('click', async () => {
     if (linkPending) {
@@ -342,8 +420,8 @@
         showError(`.${ext} files are not allowed for security reasons.`);
         return;
       }
-      if (_selectedFile.size > MAX_FILE_BYTES) {
-        showError('File is too large. Maximum size is 2 MB.');
+      if (_selectedFile.size > maxFileBytes()) {
+        showError(`File is too large. Maximum size is ${isPro ? 25 : 2} MB.`);
         return;
       }
       fileToEncrypt = _selectedFile;
@@ -384,9 +462,27 @@
         payload.mimetype = fileToEncrypt.type || 'application/octet-stream';
       }
 
+      if (isPro) {
+        const views = parseInt(document.querySelector('input[name="views"]:checked')?.value || '1', 10);
+        if (views > 1) payload.views = views;
+        const passphrase = document.getElementById('passphrase-input')?.value || '';
+        if (passphrase) {
+          if (passphrase.length < 4 || passphrase.length > 128) {
+            showError('Passphrase must be between 4 and 128 characters.');
+            return;
+          }
+          payload.passphrase = passphrase;
+        }
+        const notifyEmail = document.getElementById('notify-email')?.value.trim() || '';
+        if (notifyEmail) payload.notifyEmail = notifyEmail;
+      }
+
+      const headers = { 'Content-Type': 'application/json' };
+      if (isPro && licenseKey) headers['X-License-Key'] = licenseKey;
+
       const res = await fetch('/api/secret', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body:    JSON.stringify(payload),
       });
 
@@ -407,7 +503,7 @@
       document.getElementById('result').classList.remove('hidden');
       setLinkPending(true);
 
-      const expiryLabel = expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
+      const expiryLabel = expiresIn === 168 ? '7 days' : expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
       document.querySelector('.warn-box span').textContent = `View once only · Expires in ${expiryLabel} if unopened · Never stored in plaintext`;
 
       if (!fileToEncrypt) {
@@ -415,6 +511,10 @@
         document.getElementById('gen-preview').value  = '';
       }
       document.getElementById('recipient-email').value = '';
+      const passEl = document.getElementById('passphrase-input');
+      if (passEl) passEl.value = '';
+      const notifyEl = document.getElementById('notify-email');
+      if (notifyEl) notifyEl.value = '';
 
     } catch (err) {
       if (err instanceof RangeError) {
@@ -441,17 +541,27 @@
   let _toast = null;
   let _toastTimer = null;
 
-  function showError(msg) {
+  const CHECK_ICON_HTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  function showToast(msg, type, icon) {
     if (_toast) { _toast.remove(); clearTimeout(_toastTimer); }
     _toast = document.createElement('div');
-    _toast.className = 'toast toast-error';
-    _toast.innerHTML = WARN_ICON_HTML + '<span></span><button class="toast-close" aria-label="Dismiss">&times;</button>';
+    _toast.className = `toast ${type}`;
+    _toast.innerHTML = icon + '<span></span><button class="toast-close" aria-label="Dismiss">&times;</button>';
     _toast.querySelector('span').textContent = msg;
     _toast.querySelector('.toast-close').addEventListener('click', hideError);
     document.body.appendChild(_toast);
     void _toast.offsetWidth;
     _toast.classList.add('toast-show');
     _toastTimer = setTimeout(hideError, 5000);
+  }
+
+  function showError(msg) {
+    showToast(msg, 'toast-error', WARN_ICON_HTML);
+  }
+
+  function showSuccess(msg) {
+    showToast(msg, 'toast-success', CHECK_ICON_HTML);
   }
 
   function hideError() {

@@ -1004,7 +1004,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border: 1px solid var(--danger-border);
   color: var(--danger);
 }
-.toast-error span { flex: 1; line-height: 1.45; }
+.toast-success {
+  background: rgba(10,18,32,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(97,207,90,.35);
+  color: var(--green);
+}
+.toast-error span, .toast-success span { flex: 1; line-height: 1.45; }
 .toast-close {
   background: none;
   border: none;
@@ -1434,6 +1441,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .otp-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
 .otp-error { font-size: .82rem; color: var(--danger); margin-bottom: 12px; }
+.pass-input {
+  max-width: 300px;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: center;
+  padding: 13px 14px;
+}
 
 /* Expired / Error state */
 .expired-card {
@@ -1706,6 +1721,43 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .btn-link-pro:hover { color: var(--text-muted); }
 
+/* ── License activation ── */
+.modal-license {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.modal-license input {
+  flex: 1;
+  background: rgba(0,0,0,.3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
+  font-size: .78rem;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.modal-license input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
+.modal-license input::placeholder { color: var(--text-dim); font-family: 'Space Grotesk', system-ui, sans-serif; }
+.modal-license button {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #61cf5a, #4db849);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #000;
+  font-family: inherit;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter var(--transition);
+}
+.modal-license button:hover { filter: brightness(1.08); }
+.modal-license button:disabled { opacity: .5; cursor: wait; }
+.license-error { color: var(--danger); }
+
 /* ── Pricing ── */
 .pricing {
   margin-top: 48px;
@@ -1831,6 +1883,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   transition: filter var(--transition), box-shadow var(--transition);
 }
 .price-card-cta-pro:hover { filter: brightness(1.08); box-shadow: 0 6px 28px rgba(97,207,90,.35); }
+.price-card-cta-pro:disabled {
+  cursor: default;
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
 
 @media (max-width: 640px) {
   .pricing-grid { grid-template-columns: 1fr; }

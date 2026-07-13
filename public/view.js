@@ -13,8 +13,15 @@
     setState('state-expired');
   }
 
-  function showFile(dataB64, filename, mimetype) {
+  function viewsLeftLabel(viewsLeft) {
+    return `Can still be viewed ${viewsLeft} more time${viewsLeft === 1 ? '' : 's'} before it is destroyed`;
+  }
+
+  function showFile(dataB64, filename, mimetype, viewsLeft = 0) {
     document.getElementById('file-reveal-name').textContent = filename;
+    if (viewsLeft > 0) {
+      document.getElementById('file-notice-text').textContent = viewsLeftLabel(viewsLeft);
+    }
     setState('state-file');
 
     document.getElementById('btn-download-file').onclick = () => {
@@ -33,8 +40,11 @@
     };
   }
 
-  function showSecret(plaintext) {
+  function showSecret(plaintext, viewsLeft = 0) {
     document.getElementById('secret-text').value = plaintext;
+    if (viewsLeft > 0) {
+      document.getElementById('secret-notice-text').textContent = viewsLeftLabel(viewsLeft) + '.';
+    }
     setState('state-secret');
 
     // Defined once, not re-attached on repeated calls (F-19)
@@ -56,17 +66,36 @@
     };
   }
 
-  async function revealSecret(id, k1B64, otp = null, onDone = null) {
+  async function revealSecret(id, k1B64, auth = {}, onDone = null) {
     try {
       const headers = { 'X-Key': k1B64 };
-      if (otp) headers['X-OTP'] = otp;
+      if (auth.otp)        headers['X-OTP']        = auth.otp;
+      if (auth.passphrase) headers['X-Passphrase'] = encodeURIComponent(auth.passphrase);
       const res = await fetch(`/api/secret/${id}`, { headers });
 
       if (res.status === 403) {
         const data = await res.json();
+        if (data.error === 'passphrase_required') {
+          setState('state-passphrase');
+          setupPassphrase(id, k1B64, auth, onDone);
+          return;
+        }
+        if (data.error === 'invalid_passphrase') {
+          setState('state-passphrase');
+          const errEl = document.getElementById('passphrase-error');
+          errEl.textContent = data.attemptsLeft === 1
+            ? 'Invalid passphrase. 1 attempt remaining.'
+            : `Invalid passphrase. ${data.attemptsLeft} attempts remaining.`;
+          errEl.classList.remove('hidden');
+          const passInput = document.getElementById('passphrase-view-input');
+          passInput.value = '';
+          passInput.focus();
+          setupPassphrase(id, k1B64, auth, onDone);
+          return;
+        }
         if (data.error === 'otp_required') {
           setState('state-otp');
-          setupOTP(id, k1B64, onDone);
+          setupOTP(id, k1B64, auth, onDone);
           return;
         }
         if (data.error === 'invalid_otp') {
@@ -78,7 +107,7 @@
           errEl.classList.remove('hidden');
           document.getElementById('otp-input').value = '';
           document.getElementById('otp-input').focus();
-          setupOTP(id, k1B64, onDone);
+          setupOTP(id, k1B64, auth, onDone);
           return;
         }
       }
@@ -91,7 +120,7 @@
         onDone?.();
         const data = await res.json().catch(() => ({}));
         if (data.error === 'too_many_attempts') {
-          showExpired('Secret Destroyed', 'Too many incorrect codes. The secret has been permanently deleted for security.');
+          showExpired('Secret Destroyed', 'Too many incorrect attempts. The secret has been permanently deleted for security.');
         } else {
           showExpired('Link Expired', 'This link has expired. Ask the sender to create a fresh link.');
         }
@@ -104,11 +133,12 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      onDone?.();
+      const viewsLeft = typeof data.viewsLeft === 'number' ? data.viewsLeft : 0;
+      if (viewsLeft <= 0) onDone?.();
       if (data.data !== undefined) {
-        showFile(data.data, data.filename, data.mimetype);
+        showFile(data.data, data.filename, data.mimetype, viewsLeft);
       } else {
-        showSecret(data.plaintext);
+        showSecret(data.plaintext, viewsLeft);
       }
     } catch (err) {
       onDone?.();
@@ -116,7 +146,25 @@
     }
   }
 
-  function setupOTP(id, k1B64, onDone = null) {
+  function setupPassphrase(id, k1B64, auth = {}, onDone = null) {
+    const btn   = document.getElementById('btn-passphrase-submit');
+    const input = document.getElementById('passphrase-view-input');
+    input.focus();
+    const clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    clone.addEventListener('click', () => {
+      const passphrase = input.value;
+      if (!passphrase) return;
+      document.getElementById('passphrase-error').classList.add('hidden');
+      setState('state-loading');
+      revealSecret(id, k1B64, { ...auth, passphrase }, onDone);
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') clone.click();
+    }, { once: true });
+  }
+
+  function setupOTP(id, k1B64, auth = {}, onDone = null) {
     const btn   = document.getElementById('btn-otp-submit');
     const input = document.getElementById('otp-input');
     input.focus();
@@ -127,7 +175,7 @@
       if (otp.length !== 6) return;
       document.getElementById('otp-error').classList.add('hidden');
       setState('state-loading');
-      revealSecret(id, k1B64, otp, onDone);
+      revealSecret(id, k1B64, { ...auth, otp }, onDone);
     });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') clone.click();
@@ -165,7 +213,7 @@
 
     document.getElementById('btn-reveal').addEventListener('click', () => {
       setState('state-loading');
-      revealSecret(id, k1B64, null, clearK1);
+      revealSecret(id, k1B64, {}, clearK1);
     }, { once: true });
   }
 
