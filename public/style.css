@@ -890,6 +890,17 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   .process-steps { grid-template-columns: 1fr; }
 }
 
+/* ── About: Pro section ── */
+.about-pro-intro {
+  font-size: .92rem;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 20px;
+  max-width: 640px;
+}
+.about-pro-cta-wrap { text-align: center; margin-top: 24px; }
+.about-pro-cta-wrap .btn-primary { display: inline-flex; width: auto; padding: 12px 28px; }
+
 /* ── FAQ ── */
 .faq {
   margin-top: 40px;

@@ -44,7 +44,7 @@
       <section class="about-hero">
         <div class="about-hero-badge">About Blink</div>
         <h1 class="about-hero-title">Secure secret sharing,<br>built the right way.</h1>
-        <p class="about-hero-desc">Blink lets you share passwords, API keys, and sensitive text through a one-time link that permanently self-destructs the moment it is opened. No accounts. No database. No trace.</p>
+        <p class="about-hero-desc">Blink lets you share passwords, API keys, files, and sensitive text through a one-time link that permanently self-destructs the moment it is opened. No accounts. No database. No trace.</p>
         <a href="/" class="btn-primary about-cta">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Create a Secret
@@ -169,7 +169,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
             <div class="security-card-title">Auto-expiry</div>
-            <div class="security-card-desc">Unviewed secrets are automatically purged at your chosen expiry (1, 6, 24, or 48 hours). The link becomes permanently invalid with no manual action needed.</div>
+            <div class="security-card-desc">Unviewed secrets are automatically purged at your chosen expiry (1 hour to 48 hours, or 7 days with Pro). The link becomes permanently invalid with no manual action needed.</div>
           </div>
           <div class="security-card">
             <div class="security-card-icon">
@@ -178,6 +178,62 @@
             <div class="security-card-title">Strict CSP &amp; no tracking</div>
             <div class="security-card-desc">No external scripts, no fonts, no analytics. Content Security Policy blocks all injection. User content is set via textContent, immune to XSS.</div>
           </div>
+        </div>
+      </section>
+
+      <!-- Blink Pro -->
+      <section class="about-section">
+        <h2 class="about-section-title">Blink Pro</h2>
+        <p class="about-pro-intro">Blink is free forever: view-once secrets, files up to 2 MB, email verification, and expiry up to 48 hours. Pro adds flexibility for $3.99/month, cancel anytime. No account needed, just a license key.</p>
+        <div class="security-grid">
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="security-card-title">Files up to 25 MB</div>
+            <div class="security-card-desc">Share documents, configs, exports, and archives. Encrypted in your browser before upload, exactly like text secrets.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="security-card-title">7-day expiry</div>
+            <div class="security-card-desc">Give recipients up to a week to open your link instead of 48 hours. Perfect when they are traveling or in another timezone.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="security-card-title">Multi-view links</div>
+            <div class="security-card-desc">Allow up to 5 views on one link, ideal for sharing with a small team. The secret is destroyed after the last allowed view.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="security-card-title">Passphrase protection</div>
+            <div class="security-card-desc">Add a passphrase the recipient must enter, shared through a separate channel. Five wrong attempts destroys the secret.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div class="security-card-title">View notifications</div>
+            <div class="security-card-desc">Get an email the moment your secret is revealed, with the number of views remaining. Proof of delivery for sensitive handoffs.</div>
+          </div>
+          <div class="security-card">
+            <div class="security-card-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="security-card-title">Same privacy model</div>
+            <div class="security-card-desc">Pro changes limits, not the crypto. No account is created and the four-factor key splitting applies to every secret, free or Pro.</div>
+          </div>
+        </div>
+        <div class="about-pro-cta-wrap">
+          <a href="/#pricing" class="btn-primary about-cta">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            See plans and pricing
+          </a>
         </div>
       </section>
 
@@ -191,7 +247,7 @@
               Is my secret really deleted after being viewed?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Yes. The moment the recipient opens the link and reveals the secret, it is permanently deleted from the server's memory. There is no database, no backup, no log. Once gone, not even we can recover it.</div>
+            <div class="faq-a">Yes. The moment the recipient opens the link and reveals the secret, it is permanently deleted from the server's memory. There is no database, no backup, no log. Once gone, not even we can recover it. With a Pro multi-view link, deletion happens after the last allowed view instead of the first.</div>
           </div>
 
           <div class="faq-item">
@@ -215,7 +271,7 @@
               What if the recipient never opens the link?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Unviewed secrets automatically expire at your chosen time (1, 6, 24, or 48 hours). Once expired, the secret is purged from memory and the link becomes permanently invalid. Nothing is kept.</div>
+            <div class="faq-a">Unviewed secrets automatically expire at your chosen time (1, 6, 24, or 48 hours, or 7 days with Pro). Once expired, the secret is purged from memory and the link becomes permanently invalid. Nothing is kept.</div>
           </div>
 
           <div class="faq-item">
@@ -231,7 +287,7 @@
               Can I view my own secret after sharing the link?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">No. Once you share the link, consider the secret gone. If you open it yourself, it will be deleted and the recipient will not be able to view it. Simply create a new link if needed.</div>
+            <div class="faq-a">No. Once you share the link, consider the secret gone. If you open it yourself, it will be deleted and the recipient will not be able to view it (on a Pro multi-view link, opening it consumes one of the allowed views). Simply create a new link if needed.</div>
           </div>
 
           <div class="faq-item">
@@ -247,7 +303,23 @@
               What kinds of secrets can I share?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Anything text-based: passwords, API keys, private notes, credentials, access codes, recovery phrases. Maximum size is 10 KB. You can also use the built-in password generator to create a strong password and share it instantly.</div>
+            <div class="faq-a">Anything text-based: passwords, API keys, private notes, credentials, access codes, recovery phrases (up to 10 KB). You can also share files up to 2 MB (25 MB with Pro), encrypted in your browser before upload. Executable and script file types are blocked for safety. And the built-in password generator creates a strong password you can share instantly.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              What is Blink Pro and how does the license work?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Pro unlocks 25 MB files, 7-day expiry, multi-view links, passphrase protection, and view notifications for $3.99/month. There is no account: after checkout you receive a license key by email, paste it once into Blink, and Pro is active in that browser. You can cancel anytime and keep using the free plan forever.</div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">
+              Is Blink open source?
+              <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="faq-a">Yes. The full source code is on <a href="https://github.com/MALTOisHERE/onlyonce" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> under the AGPL-3.0 license, so anyone can audit the encryption instead of taking our word for it. You can also self-host Blink on your own server for free.</div>
           </div>
 
         </div>
@@ -256,7 +328,7 @@
     </main>
 
     <footer class="footer">
-      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
+      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; <a href="/#pricing" class="footer-link">Pro</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
     </footer>
   </div>
 
