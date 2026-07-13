@@ -14,6 +14,9 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - "EMAIL_FROM=Blink <noreply@malto.icu>"
       - STATS_FILE=/data/stats.json
+      - LS_STORE_ID=${LS_STORE_ID}
+      - LS_PRODUCT_ID=${LS_PRODUCT_ID}
+      - PRO_CHECKOUT_URL=${PRO_CHECKOUT_URL}
     volumes:
       - /var/www/blink/data:/data
     deploy:
