@@ -179,7 +179,7 @@ function saveLicenses() {
 // express-session dependency for something this simple.
 const SESSION_SECRET     = process.env.SESSION_SECRET || null;
 const SESSION_COOKIE     = 'blink_session';
-const SESSION_MAX_AGE    = 30 * 24 * 3_600_000; // 30 days
+const SESSION_MAX_AGE    = 7 * 24 * 3_600_000; // 7 days
 const OAUTH_STATE_COOKIE = 'blink_oauth_state';
 
 function parseCookies(header) {

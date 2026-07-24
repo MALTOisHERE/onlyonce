@@ -1790,6 +1790,13 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .btn-google-signin:hover { box-shadow: 0 2px 10px rgba(0,0,0,.25); transform: translateY(-1px); }
 .btn-google-signin svg { flex-shrink: 0; }
 #pro-signed-in-as { color: var(--text); font-weight: 600; }
+.pro-signed-in-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pro-signed-in-row .btn-link { font-size: .8rem; flex-shrink: 0; }
 
 /* ── Pricing ── */
 .pricing {

@@ -47,6 +47,14 @@
     }
   }
 
+  async function signOutOfGoogle() {
+    // Ends this browser's session only — the license stays bound to the
+    // account server-side, ready to resume Pro on next sign-in with no
+    // need to re-paste the key.
+    try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
+    location.reload();
+  }
+
   async function deactivatePro() {
     const ok = await confirmDiscard(
       'Remove Blink Pro from your account? You can re-activate anytime by signing in and pasting the same license key.',
@@ -424,6 +432,7 @@
   document.getElementById('pro-modal-buy').addEventListener('click', () => {
     if (proCheckoutUrl) window.open(proCheckoutUrl, '_blank', 'noopener');
   });
+  document.getElementById('pro-sign-out').addEventListener('click', signOutOfGoogle);
   document.getElementById('btn-pro-cta').addEventListener('click', () => {
     if (isPro) {
       deactivatePro();
