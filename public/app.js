@@ -57,8 +57,10 @@
 
   async function deactivatePro() {
     const ok = await confirmDiscard(
-      'Remove Blink Pro from your account? You can re-activate anytime by signing in and pasting the same license key.',
-      'Remove Pro'
+      'You can re-activate anytime by signing in and pasting the same license key.',
+      'Remove Pro',
+      'Remove Blink Pro?',
+      'Cancel'
     );
     if (!ok) return;
     try { await fetch('/api/license/deactivate', { method: 'POST' }); } catch {}
@@ -392,10 +394,12 @@
     });
   }
 
-  function confirmDiscard(body, discardLabel) {
+  function confirmDiscard(body, discardLabel, title = 'Your link will be lost', safeLabel = 'Copy link first') {
     return new Promise(resolve => {
+      document.getElementById('tab-warn-title').textContent = title;
       document.getElementById('tab-warn-body').textContent = body;
       document.getElementById('tab-warn-leave-label').textContent = discardLabel;
+      document.getElementById('tab-warn-stay-label').textContent = safeLabel;
       const overlay = document.getElementById('tab-warn-overlay');
       overlay.classList.remove('hidden');
       function close(result) {

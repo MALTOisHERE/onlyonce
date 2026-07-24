@@ -1796,7 +1796,28 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   justify-content: space-between;
   gap: 12px;
 }
-.pro-signed-in-row .btn-link { font-size: .8rem; flex-shrink: 0; }
+.btn-sign-out {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 5px 10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: .74rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-sign-out:hover {
+  border-color: rgba(239,68,68,.35);
+  color: var(--danger);
+  background: rgba(239,68,68,.06);
+}
+.btn-sign-out svg { flex-shrink: 0; }
 
 /* ── Pricing ── */
 .pricing {

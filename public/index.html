@@ -338,7 +338,7 @@
         <div class="modal-actions">
           <button class="btn-modal-confirm" id="tab-warn-stay">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Copy link first
+            <span id="tab-warn-stay-label">Copy link first</span>
           </button>
           <button class="btn-modal-danger" id="tab-warn-leave"><span id="tab-warn-leave-label">Discard and switch</span></button>
         </div>
@@ -368,7 +368,10 @@
           <div id="pro-license-section" class="hidden">
             <p class="modal-body modal-body-hint pro-signed-in-row">
               <span id="pro-signed-in-as">Signed in</span>
-              <button type="button" id="pro-sign-out" class="btn-link">Sign out</button>
+              <button type="button" id="pro-sign-out" class="btn-sign-out">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign out
+              </button>
             </p>
             <p class="modal-body modal-body-hint">After checkout your license key arrives by email. Paste it here to link it to your account:</p>
             <div class="modal-license">
