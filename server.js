@@ -84,6 +84,13 @@ const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO
 const LS_STORE_ID    = process.env.LS_STORE_ID   ? Number(process.env.LS_STORE_ID)   : null;
 const LS_PRODUCT_ID  = process.env.LS_PRODUCT_ID ? Number(process.env.LS_PRODUCT_ID) : null;
 const PRO_DEV_KEY    = process.env.BLINK_PRO_DEV_KEY || null;
+// Site owner allowlist — these Google accounts always have Pro, no license or
+// Lemon Squeezy involved. Safer than a shared bearer key for this: even if the
+// env var leaked, it only grants Pro to a specific real Google identity, not
+// to anyone who happens to read the value. Comma-separated in OWNER_EMAILS.
+const OWNER_EMAILS = new Set(
+  (process.env.OWNER_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+);
 const LICENSE_KEY_RE      = /^[A-Za-z0-9-]{8,64}$/;
 const LICENSE_INSTANCE_RE = /^[A-Za-z0-9-]{1,64}$/;
 const LICENSE_CACHE_TTL = 3_600_000; // 1 hour
@@ -245,6 +252,7 @@ function readSession(req) {
 
 async function isProForSession(session) {
   if (!session) return false;
+  if (session.email && OWNER_EMAILS.has(session.email.toLowerCase())) return true;
   const record = licenses[session.sub];
   if (!record) return false;
   return checkLicenseInstance(record.licenseKey, record.instanceId);
