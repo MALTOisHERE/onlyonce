@@ -135,7 +135,7 @@ async function checkLicenseInstance(key, instanceId) {
     const data   = await resp.json();
     const status = data?.license_key?.status;
     valid = data?.valid === true
-      && data?.instance != null
+      && !!data?.instance
       && status !== 'expired' && status !== 'disabled'
       && licenseMetaMatches(data);
   } catch (err) {
