@@ -74,12 +74,14 @@
     const signedInAs     = document.getElementById('pro-signed-in-as');
     const ownerBadge     = document.getElementById('pro-owner-badge');
     const keySection     = document.getElementById('pro-key-section');
+    const signOutBtn     = document.getElementById('pro-sign-out');
     if (isLoggedIn) {
       loginSection?.classList.add('hidden');
       licenseSection?.classList.remove('hidden');
       if (signedInAs) signedInAs.textContent = userEmail ? `Signed in as ${userEmail}` : 'Signed in';
       ownerBadge?.classList.toggle('hidden', !isOwner);
       keySection?.classList.toggle('hidden', isOwner);
+      signOutBtn?.classList.toggle('hidden', isOwner);
     } else {
       loginSection?.classList.remove('hidden');
       licenseSection?.classList.add('hidden');
