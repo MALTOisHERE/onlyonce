@@ -96,7 +96,7 @@
     if (cta) {
       if (isOwner) {
         cta.textContent = 'Owner account';
-        cta.disabled = true;
+        cta.disabled = false;
       } else {
         cta.textContent = 'Remove Pro from my account';
         cta.disabled = false;
@@ -455,7 +455,7 @@
   document.getElementById('pro-sign-out').addEventListener('click', signOutOfGoogle);
   document.getElementById('btn-pro-cta').addEventListener('click', () => {
     if (isOwner) {
-      return; // nothing to remove — Pro is permanent for owner accounts
+      showProModal('Blink Pro'); // nothing to remove, but still reachable for sign out
     } else if (isPro) {
       deactivatePro();
     } else {
