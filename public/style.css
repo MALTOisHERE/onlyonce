@@ -1767,6 +1767,30 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .modal-license button:disabled { opacity: .5; cursor: wait; }
 .license-error { color: var(--danger); }
 
+/* ── Google sign-in ── */
+.btn-google-signin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 16px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.1);
+  border-radius: var(--radius-sm);
+  color: #3c4043;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: .88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.btn-google-signin:hover { box-shadow: 0 2px 10px rgba(0,0,0,.25); transform: translateY(-1px); }
+.btn-google-signin svg { flex-shrink: 0; }
+#pro-signed-in-as { color: var(--text); font-weight: 600; }
+
 /* ── Pricing ── */
 .pricing {
   margin-top: 48px;
@@ -1897,6 +1921,15 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   filter: none;
   box-shadow: none;
   transform: none;
+}
+.price-card-cta-remove {
+  background: rgba(239,68,68,.08) !important;
+  color: var(--danger) !important;
+  box-shadow: none !important;
+}
+.price-card-cta-remove:hover {
+  background: rgba(239,68,68,.14) !important;
+  filter: none !important;
 }
 
 @media (max-width: 640px) {

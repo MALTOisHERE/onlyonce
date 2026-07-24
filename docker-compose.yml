@@ -14,9 +14,15 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - "EMAIL_FROM=Blink <noreply@malto.icu>"
       - STATS_FILE=/data/stats.json
+      - LICENSES_FILE=/data/licenses.json
       - LS_STORE_ID=${LS_STORE_ID}
       - LS_PRODUCT_ID=${LS_PRODUCT_ID}
       - PRO_CHECKOUT_URL=${PRO_CHECKOUT_URL}
+      - PRO_USAGE_RATE_LIMIT=${PRO_USAGE_RATE_LIMIT}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - SESSION_SECRET=${SESSION_SECRET}
     volumes:
       - /var/www/blink/data:/data
     deploy:

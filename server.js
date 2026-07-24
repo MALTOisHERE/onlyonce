@@ -65,22 +65,64 @@ if (process.env.NODE_ENV === 'production' && process.env.HOST) {
 const createLimiter = new RateLimiter(60_000,    parseInt(process.env.CREATE_RATE_LIMIT || '10',  10));
 const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_LIMIT   || '30',  10));
 const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
+// Bucketed by the signed-in Google account, so every session using the same
+// license — however it ended up authenticated — shares one daily quota. This
+// is now a secondary safety net: the real protection is that Pro requires a
+// live Google session per account (Activation Limit = 1), not a copy-pasteable
+// key. This limiter just guards against runaway/automated abuse of one account.
+const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO_USAGE_RATE_LIMIT || '50', 10));
 
-// ── Blink Pro licensing (Lemon Squeezy) ─────────────────────────────────────
-// Validated against the Lemon Squeezy license API. Results cached in memory.
-// BLINK_PRO_DEV_KEY grants Pro locally for development/testing.
+// ── Blink Pro licensing (Lemon Squeezy + Google Sign-In) ────────────────────
+// The license key and its Lemon Squeezy instance ID live ONLY on the server,
+// keyed by a verified Google account — never in the browser. The browser only
+// ever holds a signed session cookie proving "this Google account is logged
+// in right now." A raw license key + instance ID pasted into a chat is just
+// two copy-pasteable strings; a live Google login is not something people
+// hand out the same way, which is what actually stops casual key sharing.
+// Set the Lemon Squeezy product's Activation Limit to 1 so a key can only
+// ever be bound to one Google account at a time.
 const LS_STORE_ID    = process.env.LS_STORE_ID   ? Number(process.env.LS_STORE_ID)   : null;
 const LS_PRODUCT_ID  = process.env.LS_PRODUCT_ID ? Number(process.env.LS_PRODUCT_ID) : null;
 const PRO_DEV_KEY    = process.env.BLINK_PRO_DEV_KEY || null;
-const LICENSE_KEY_RE = /^[A-Za-z0-9-]{8,64}$/;
+const LICENSE_KEY_RE      = /^[A-Za-z0-9-]{8,64}$/;
+const LICENSE_INSTANCE_RE = /^[A-Za-z0-9-]{1,64}$/;
 const LICENSE_CACHE_TTL = 3_600_000; // 1 hour
-const licenseCache = new Map(); // key -> { valid, exp }
+const licenseCache = new Map(); // "key:instanceId" -> { valid, exp }
 
-async function checkLicense(key) {
+function licenseMetaMatches(data) {
+  return (!LS_STORE_ID   || data?.meta?.store_id   === LS_STORE_ID)
+      && (!LS_PRODUCT_ID || data?.meta?.product_id === LS_PRODUCT_ID);
+}
+
+async function activateLicense(key, instanceName) {
+  const resp = await fetch('https://api.lemonsqueezy.com/v1/licenses/activate', {
+    method:  'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ license_key: key, instance_name: instanceName }),
+  });
+  const data   = await resp.json();
+  const status = data?.license_key?.status;
+  const ok = data?.activated === true
+    && status !== 'expired' && status !== 'disabled'
+    && licenseMetaMatches(data);
+  return { ok, instanceId: data?.instance?.id || null, error: data?.error || null };
+}
+
+async function deactivateLicense(key, instanceId) {
+  await fetch('https://api.lemonsqueezy.com/v1/licenses/deactivate', {
+    method:  'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ license_key: key, instance_id: instanceId }),
+  });
+}
+
+async function checkLicenseInstance(key, instanceId) {
   if (typeof key !== 'string' || !LICENSE_KEY_RE.test(key)) return false;
   if (PRO_DEV_KEY && key === PRO_DEV_KEY) return true;
+  if (typeof instanceId !== 'string' || !LICENSE_INSTANCE_RE.test(instanceId)) return false;
 
-  const cached = licenseCache.get(key);
+  const cacheKey = `${key}:${instanceId}`;
+  const cached = licenseCache.get(cacheKey);
   if (cached && Date.now() < cached.exp) return cached.valid;
 
   let valid = false;
@@ -88,14 +130,14 @@ async function checkLicense(key) {
     const resp = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
       method:  'POST',
       headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ license_key: key }),
+      body:    JSON.stringify({ license_key: key, instance_id: instanceId }),
     });
     const data   = await resp.json();
     const status = data?.license_key?.status;
     valid = data?.valid === true
+      && data?.instance != null
       && status !== 'expired' && status !== 'disabled'
-      && (!LS_STORE_ID   || data?.meta?.store_id   === LS_STORE_ID)
-      && (!LS_PRODUCT_ID || data?.meta?.product_id === LS_PRODUCT_ID);
+      && licenseMetaMatches(data);
   } catch (err) {
     console.error('[license]', err.message);
     // Lemon Squeezy unreachable: honour a stale cache entry rather than lock out a paying user
@@ -103,32 +145,210 @@ async function checkLicense(key) {
     return false;
   }
 
-  licenseCache.set(key, { valid, exp: Date.now() + LICENSE_CACHE_TTL });
+  licenseCache.set(cacheKey, { valid, exp: Date.now() + LICENSE_CACHE_TTL });
   if (licenseCache.size > 5_000) {
     licenseCache.delete(licenseCache.keys().next().value);
   }
   return valid;
 }
 
-// ── Body parser ─────────────────────────────────────────────────────────────
-// Pro uploads (25 MB files) need a larger body limit. The license is validated
-// from the header BEFORE the large parser is chosen, so anonymous requests can
-// never send more than the free-tier limit.
+// ── Persistent license store, keyed by a hash of the Google account ID ─────
+// { [sha256(sub)]: { licenseKey, instanceId, email, activatedAt } }
+// Never sent to the browser — only the session cookie is. Mirrors the
+// STATS_FILE persistence pattern already used elsewhere in this file.
+const LICENSES_FILE = process.env.LICENSES_FILE || path.join(__dirname, 'data', 'licenses.json');
+let licenses = {};
+
+try {
+  fs.mkdirSync(path.dirname(LICENSES_FILE), { recursive: true });
+  licenses = JSON.parse(fs.readFileSync(LICENSES_FILE, 'utf8'));
+} catch {}
+
+function saveLicenses() {
+  try {
+    const tmp = LICENSES_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(licenses, null, 2));
+    fs.renameSync(tmp, LICENSES_FILE);
+  } catch (err) {
+    console.error('[licenses]', err.message);
+  }
+}
+
+// ── Signed session cookies ──────────────────────────────────────────────────
+// Hand-rolled (one HMAC-signed cookie) instead of adding a cookie-parser /
+// express-session dependency for something this simple.
+const SESSION_SECRET     = process.env.SESSION_SECRET || null;
+const SESSION_COOKIE     = 'blink_session';
+const SESSION_MAX_AGE    = 30 * 24 * 3_600_000; // 30 days
+const OAUTH_STATE_COOKIE = 'blink_oauth_state';
+
+function parseCookies(header) {
+  const out = {};
+  if (!header) return out;
+  for (const pair of header.split(';')) {
+    const idx = pair.indexOf('=');
+    if (idx === -1) continue;
+    const k = pair.slice(0, idx).trim();
+    const v = pair.slice(idx + 1).trim();
+    if (k) { try { out[k] = decodeURIComponent(v); } catch { out[k] = v; } }
+  }
+  return out;
+}
+
+function signValue(value, secret) {
+  const sig = crypto.createHmac('sha256', secret).update(value).digest('base64url');
+  return `${value}.${sig}`;
+}
+
+function unsignValue(signed, secret) {
+  const idx = signed.lastIndexOf('.');
+  if (idx === -1) return null;
+  const value = signed.slice(0, idx);
+  const sig   = signed.slice(idx + 1);
+  const expected = crypto.createHmac('sha256', secret).update(value).digest('base64url');
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  return value;
+}
+
+function cookieAttrs(maxAgeSeconds) {
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  return `HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
+}
+
+function setSessionCookie(res, subHash, email) {
+  const payload = JSON.stringify({ sub: subHash, email: email || null, exp: Date.now() + SESSION_MAX_AGE });
+  const value   = signValue(Buffer.from(payload).toString('base64url'), SESSION_SECRET);
+  res.append('Set-Cookie', `${SESSION_COOKIE}=${value}; ${cookieAttrs(Math.floor(SESSION_MAX_AGE / 1000))}`);
+}
+
+function clearSessionCookie(res) {
+  res.append('Set-Cookie', `${SESSION_COOKIE}=; ${cookieAttrs(0)}`);
+}
+
+function readSession(req) {
+  if (!SESSION_SECRET) return null;
+  const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
+  if (!raw) return null;
+  const encoded = unsignValue(raw, SESSION_SECRET);
+  if (!encoded) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    if (typeof payload.sub !== 'string' || typeof payload.exp !== 'number') return null;
+    if (Date.now() > payload.exp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function isProForSession(session) {
+  if (!session) return false;
+  const record = licenses[session.sub];
+  if (!record) return false;
+  return checkLicenseInstance(record.licenseKey, record.instanceId);
+}
+
+// ── Google OAuth (server-side redirect flow — no client-side Google JS SDK,
+// so the strict script-src 'self' CSP never needs loosening) ───────────────
+const GOOGLE_CLIENT_ID       = process.env.GOOGLE_CLIENT_ID     || null;
+const GOOGLE_CLIENT_SECRET   = process.env.GOOGLE_CLIENT_SECRET || null;
+const GOOGLE_REDIRECT_URI    = process.env.GOOGLE_REDIRECT_URI  || null;
+const GOOGLE_AUTH_CONFIGURED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GOOGLE_REDIRECT_URI && SESSION_SECRET);
+
+app.get('/api/auth/google/start', (req, res) => {
+  if (!GOOGLE_AUTH_CONFIGURED) {
+    return res.status(503).send('Google sign-in is not configured on this server.');
+  }
+  const state = crypto.randomBytes(24).toString('base64url');
+  res.append('Set-Cookie', `${OAUTH_STATE_COOKIE}=${state}; ${cookieAttrs(600)}`);
+  const params = new URLSearchParams({
+    client_id:     GOOGLE_CLIENT_ID,
+    redirect_uri:  GOOGLE_REDIRECT_URI,
+    response_type: 'code',
+    scope:         'openid email',
+    state,
+    prompt:        'select_account',
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  res.append('Set-Cookie', `${OAUTH_STATE_COOKIE}=; ${cookieAttrs(0)}`);
+  if (!GOOGLE_AUTH_CONFIGURED) {
+    return res.status(503).send('Google sign-in is not configured on this server.');
+  }
+  const { code, state } = req.query;
+  const expectedState = parseCookies(req.headers.cookie)[OAUTH_STATE_COOKIE];
+  if (!code || !state || !expectedState || state !== expectedState) {
+    return res.redirect('/?auth=error');
+  }
+
+  try {
+    const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code:          String(code),
+        client_id:     GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        redirect_uri:  GOOGLE_REDIRECT_URI,
+        grant_type:    'authorization_code',
+      }),
+    });
+    const tokenData = await tokenResp.json();
+    if (!tokenData.id_token) {
+      return res.redirect('/?auth=error');
+    }
+
+    // Verified via Google's tokeninfo endpoint rather than local JWKS/JWT
+    // verification — simpler, no extra dependency, fine at this volume.
+    const infoResp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`);
+    const info = await infoResp.json();
+    if (info.aud !== GOOGLE_CLIENT_ID || info.email_verified !== 'true' || !info.sub) {
+      return res.redirect('/?auth=error');
+    }
+
+    const subHash = crypto.createHash('sha256').update(String(info.sub)).digest('hex');
+    setSessionCookie(res, subHash, info.email || null);
+    res.redirect('/?auth=success');
+  } catch (err) {
+    console.error('[oauth]', err.message);
+    res.redirect('/?auth=error');
+  }
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const session = readSession(req);
+  if (!session) return res.json({ loggedIn: false });
+  const isPro = await isProForSession(session);
+  res.json({ loggedIn: true, email: session.email || null, isPro });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  clearSessionCookie(res);
+  res.json({ ok: true });
+});
+
+// Dev-only bypass so the full session -> license flow can be tested locally
+// without real Google Cloud credentials. Never registered in production.
+if (process.env.NODE_ENV !== 'production' && PRO_DEV_KEY) {
+  app.get('/api/auth/dev-login', (req, res) => {
+    const subHash = crypto.createHash('sha256').update('dev-user').digest('hex');
+    setSessionCookie(res, subHash, 'dev@example.com');
+    res.redirect('/?auth=success');
+  });
+}
+
+// ── Body parsers ─────────────────────────────────────────────────────────────
+// Pro uploads (25 MB files) need a larger limit than everything else. Applied
+// per-route (not globally) so static assets and other endpoints never pay for
+// a session/license lookup on every request.
 const jsonSmall = express.json({ limit: '4mb',  strict: true });
 const jsonLarge = express.json({ limit: '40mb', strict: true });
-app.use((req, res, next) => {
-  const headerKey = req.headers['x-license-key'];
-  if (!headerKey) {
-    req.isPro = false;
-    return jsonSmall(req, res, next);
-  }
-  checkLicense(String(headerKey).trim())
-    .then(ok => {
-      req.isPro = ok;
-      return (ok ? jsonLarge : jsonSmall)(req, res, next);
-    })
-    .catch(next);
-});
 
 // ── Static files (HTML pages served no-store) ──────────────────────────────
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -339,16 +559,90 @@ async function sendViewNotification(to, viewsLeft) {
   if (error) throw new Error(error.message);
 }
 
-// ── POST /api/license/validate ──────────────────────────────────────────────
-app.post('/api/license/validate', createLimiter.middleware(), async (req, res) => {
+// ── POST /api/license/activate ───────────────────────────────────────────────
+// Requires a Google-verified session. Binds the submitted key to THIS Google
+// account — the Lemon Squeezy product's Activation Limit (set to 1) enforces
+// that no other account can ever activate the same key. The key and instance
+// ID are stored server-side only; the browser never receives them.
+app.post('/api/license/activate', createLimiter.middleware(), jsonSmall, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  const session = readSession(req);
+  if (!session) {
+    return res.status(401).json({ valid: false, error: 'login_required' });
+  }
+
   const key = typeof req.body?.licenseKey === 'string' ? req.body.licenseKey.trim() : '';
-  const valid = await checkLicense(key);
-  res.json({ valid });
+  if (!LICENSE_KEY_RE.test(key)) {
+    return res.json({ valid: false, error: 'invalid' });
+  }
+
+  const subHash  = session.sub;
+  const existing = licenses[subHash];
+
+  if (PRO_DEV_KEY && key === PRO_DEV_KEY) {
+    licenses[subHash] = { licenseKey: key, instanceId: 'dev', email: session.email || null, activatedAt: Date.now() };
+    saveLicenses();
+    return res.json({ valid: true });
+  }
+
+  // Already activated with this exact key on this account — nothing to do.
+  if (existing && existing.licenseKey === key) {
+    return res.json({ valid: true });
+  }
+
+  // Switching to a different key: free the old slot first (best-effort).
+  if (existing) {
+    try { await deactivateLicense(existing.licenseKey, existing.instanceId); }
+    catch (err) { console.error('[license]', err.message); }
+    delete licenses[subHash];
+  }
+
+  try {
+    const { ok, instanceId, error } = await activateLicense(key, `google-${subHash}`);
+    if (!ok) {
+      saveLicenses();
+      const limitReached = /activation limit/i.test(error || '');
+      return res.json({ valid: false, error: limitReached ? 'activation_limit' : 'invalid' });
+    }
+    licenses[subHash] = { licenseKey: key, instanceId, email: session.email || null, activatedAt: Date.now() };
+    saveLicenses();
+    res.json({ valid: true });
+  } catch (err) {
+    console.error('[license]', err.message);
+    res.status(503).json({ valid: false, error: 'unavailable' });
+  }
+});
+
+// ── POST /api/license/deactivate ─────────────────────────────────────────────
+// Frees this account's activation slot. No body needed — the server already
+// knows which license belongs to this session.
+app.post('/api/license/deactivate', createLimiter.middleware(), async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const session = readSession(req);
+  if (!session) {
+    return res.status(401).json({ ok: false });
+  }
+  const record = licenses[session.sub];
+  if (!record) {
+    return res.json({ ok: true });
+  }
+  licenseCache.delete(`${record.licenseKey}:${record.instanceId}`);
+  delete licenses[session.sub];
+  saveLicenses();
+  if (!(PRO_DEV_KEY && record.licenseKey === PRO_DEV_KEY)) {
+    try { await deactivateLicense(record.licenseKey, record.instanceId); }
+    catch (err) { console.error('[license]', err.message); }
+  }
+  res.json({ ok: true });
 });
 
 // ── POST /api/secret ────────────────────────────────────────────────────────
-app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
+app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
+  const session = readSession(req);
+  req.session = session;
+  req.isPro   = await isProForSession(session);
+  return (req.isPro ? jsonLarge : jsonSmall)(req, res, next);
+}, async (req, res) => {
   const body = req.body;
   if (!body || typeof body !== 'object') {
     return res.status(400).json({ error: 'Invalid payload.' });
@@ -361,6 +655,16 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res) => {
   } = body;
 
   const isPro = req.isPro === true;
+  if (isPro) {
+    // Bucketed by the Google account (already a one-way hash of the Google
+    // subject ID), not the license key — with Activation Limit = 1 the two
+    // are equivalent, and this way the raw key is never touched here.
+    const retryAfter = licenseUsageLimiter.check(req.session.sub);
+    if (retryAfter > 0) {
+      res.setHeader('Retry-After', String(retryAfter));
+      return res.status(429).json({ error: 'This license has reached its daily usage limit. Try again tomorrow, or contact support if this seems wrong.' });
+    }
+  }
   const isFileSecret = isFile === true;
   const maxCtLen = isFileSecret
     ? (isPro ? MAX_FILE_CT_LEN_PRO : MAX_FILE_CT_LEN)
@@ -668,6 +972,9 @@ if (process.env.NODE_ENV !== 'test') {
   }
   if (!process.env.LS_STORE_ID || !process.env.LS_PRODUCT_ID) {
     console.warn('[warn] LS_STORE_ID / LS_PRODUCT_ID not set — Lemon Squeezy keys from ANY store would validate; Pro effectively limited to BLINK_PRO_DEV_KEY');
+  }
+  if (!GOOGLE_AUTH_CONFIGURED) {
+    console.warn('[warn] Google sign-in not fully configured (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI/SESSION_SECRET) — Pro sign-in is disabled; only BLINK_PRO_DEV_KEY dev-login works locally');
   }
   if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
     console.warn('[warn] HOST not set — HTTPS redirect will not work in production');

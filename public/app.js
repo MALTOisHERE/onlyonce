@@ -15,21 +15,59 @@
     })
     .catch(() => {});
 
-  let isPro = false;
-  let licenseKey = '';
-  try { licenseKey = localStorage.getItem('blink_license') || ''; } catch {}
+  // Pro is gated by a Google-verified session, not a client-held key. The
+  // license key and its Lemon Squeezy instance ID live only on the server
+  // (see server.js); the browser just carries a session cookie automatically
+  // on same-origin requests. This is what stops casual key sharing — a raw
+  // key pasted into a chat is useless without also being the signed-in
+  // Google account it's bound to.
+  let isPro      = false;
+  let isLoggedIn = false;
+  let userEmail  = null;
 
-  async function validateLicense(key) {
+  async function fetchAuthState() {
     try {
-      const res = await fetch('/api/license/validate', {
+      const res = await fetch('/api/auth/me');
+      return await res.json();
+    } catch {
+      return { loggedIn: false };
+    }
+  }
+
+  async function activateLicense(key) {
+    try {
+      const res = await fetch('/api/license/activate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ licenseKey: key }),
       });
-      const data = await res.json();
-      return data.valid === true;
+      return await res.json();
     } catch {
-      return false;
+      return { valid: false, error: 'network' };
+    }
+  }
+
+  async function deactivatePro() {
+    const ok = await confirmDiscard(
+      'Remove Blink Pro from your account? You can re-activate anytime by signing in and pasting the same license key.',
+      'Remove Pro'
+    );
+    if (!ok) return;
+    try { await fetch('/api/license/deactivate', { method: 'POST' }); } catch {}
+    location.reload();
+  }
+
+  function updateProModalState() {
+    const loginSection   = document.getElementById('pro-login-section');
+    const licenseSection = document.getElementById('pro-license-section');
+    const signedInAs     = document.getElementById('pro-signed-in-as');
+    if (isLoggedIn) {
+      loginSection?.classList.add('hidden');
+      licenseSection?.classList.remove('hidden');
+      if (signedInAs) signedInAs.textContent = userEmail ? `Signed in as ${userEmail}` : 'Signed in';
+    } else {
+      loginSection?.classList.remove('hidden');
+      licenseSection?.classList.add('hidden');
     }
   }
 
@@ -40,21 +78,36 @@
     const hint = document.querySelector('.file-drop-hint');
     if (hint) hint.innerHTML = 'Max 25 MB &nbsp;&middot;&nbsp; Encrypted before upload';
     const cta = document.getElementById('btn-pro-cta');
-    if (cta) { cta.textContent = 'Your current plan'; cta.disabled = true; }
+    if (cta) { cta.textContent = 'Remove Pro from my account'; cta.disabled = false; cta.classList.add('price-card-cta-remove'); }
     const freeCta = document.getElementById('free-plan-cta');
     if (freeCta) freeCta.textContent = 'Included in Pro';
   }
 
-  if (licenseKey) {
-    validateLicense(licenseKey).then(ok => {
-      if (ok) {
-        unlockProUI();
-      } else {
-        licenseKey = '';
-        try { localStorage.removeItem('blink_license'); } catch {}
-      }
-    });
-  }
+  fetchAuthState().then(state => {
+    isLoggedIn = state.loggedIn === true;
+    userEmail  = state.email || null;
+    updateProModalState();
+    if (state.isPro) unlockProUI();
+  });
+
+  // Land back here after the Google OAuth redirect with ?auth=success|error
+  (function handleAuthRedirect() {
+    const params = new URLSearchParams(window.location.search);
+    const authResult = params.get('auth');
+    if (!authResult) return;
+    history.replaceState(null, '', window.location.pathname);
+    if (authResult === 'success') {
+      fetchAuthState().then(state => {
+        isLoggedIn = state.loggedIn === true;
+        userEmail  = state.email || null;
+        updateProModalState();
+        if (state.isPro) unlockProUI();
+        showProModal('Blink Pro');
+      });
+    } else {
+      showError('Google sign-in failed. Please try again.');
+    }
+  })();
 
   // ── Link pending guard ─────────────────────────────────────────────────────
   // True after a link is created, false once copied or result hidden voluntarily.
@@ -354,6 +407,7 @@
     document.getElementById('pro-feature-name').textContent =
       featureName.charAt(0).toUpperCase() + featureName.slice(1);
     document.getElementById('license-error').classList.add('hidden');
+    updateProModalState();
     document.getElementById('pro-overlay').classList.remove('hidden');
   }
 
@@ -370,7 +424,13 @@
   document.getElementById('pro-modal-buy').addEventListener('click', () => {
     if (proCheckoutUrl) window.open(proCheckoutUrl, '_blank', 'noopener');
   });
-  document.getElementById('btn-pro-cta').addEventListener('click', () => showProModal('Blink Pro'));
+  document.getElementById('btn-pro-cta').addEventListener('click', () => {
+    if (isPro) {
+      deactivatePro();
+    } else {
+      showProModal('Blink Pro');
+    }
+  });
 
   const licenseActivateBtn = document.getElementById('license-activate');
   licenseActivateBtn.addEventListener('click', async () => {
@@ -381,15 +441,18 @@
     errEl.classList.add('hidden');
     licenseActivateBtn.disabled = true;
     licenseActivateBtn.textContent = 'Checking…';
-    const ok = await validateLicense(key);
+    const result = await activateLicense(key);
     licenseActivateBtn.disabled = false;
     licenseActivateBtn.textContent = 'Activate';
-    if (!ok) {
+    if (!result.valid) {
+      errEl.textContent = result.error === 'activation_limit'
+        ? 'This license is already linked to another account. If that was you, remove Pro there first, or contact support.'
+        : result.error === 'login_required'
+          ? 'Please sign in with Google first.'
+          : 'That key is not valid. Check it and try again.';
       errEl.classList.remove('hidden');
       return;
     }
-    licenseKey = key;
-    try { localStorage.setItem('blink_license', key); } catch {}
     unlockProUI();
     proOverlay.classList.add('hidden');
     showSuccess('Blink Pro activated. All Pro features are unlocked.');
@@ -477,12 +540,9 @@
         if (notifyEmail) payload.notifyEmail = notifyEmail;
       }
 
-      const headers = { 'Content-Type': 'application/json' };
-      if (isPro && licenseKey) headers['X-License-Key'] = licenseKey;
-
       const res = await fetch('/api/secret', {
         method:  'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(payload),
       });
 
