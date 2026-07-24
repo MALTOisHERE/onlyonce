@@ -1819,6 +1819,21 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .btn-sign-out svg { flex-shrink: 0; }
 
+.pro-owner-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--green-dim);
+  border: 1px solid rgba(97,207,90,.3);
+  border-radius: var(--radius-sm);
+  color: var(--green);
+  font-size: .82rem;
+  font-weight: 600;
+}
+.pro-owner-badge svg { flex-shrink: 0; }
+
 /* ── Pricing ── */
 .pricing {
   margin-top: 48px;

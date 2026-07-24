@@ -331,8 +331,9 @@ app.get('/api/auth/me', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const session = readSession(req);
   if (!session) return res.json({ loggedIn: false });
-  const isPro = await isProForSession(session);
-  res.json({ loggedIn: true, email: session.email || null, isPro });
+  const isPro   = await isProForSession(session);
+  const isOwner = !!(session.email && OWNER_EMAILS.has(session.email.toLowerCase()));
+  res.json({ loggedIn: true, email: session.email || null, isPro, isOwner });
 });
 
 app.post('/api/auth/logout', (req, res) => {

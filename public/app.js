@@ -23,6 +23,7 @@
   // Google account it's bound to.
   let isPro      = false;
   let isLoggedIn = false;
+  let isOwner    = false;
   let userEmail  = null;
 
   async function fetchAuthState() {
@@ -71,10 +72,14 @@
     const loginSection   = document.getElementById('pro-login-section');
     const licenseSection = document.getElementById('pro-license-section');
     const signedInAs     = document.getElementById('pro-signed-in-as');
+    const ownerBadge     = document.getElementById('pro-owner-badge');
+    const keySection     = document.getElementById('pro-key-section');
     if (isLoggedIn) {
       loginSection?.classList.add('hidden');
       licenseSection?.classList.remove('hidden');
       if (signedInAs) signedInAs.textContent = userEmail ? `Signed in as ${userEmail}` : 'Signed in';
+      ownerBadge?.classList.toggle('hidden', !isOwner);
+      keySection?.classList.toggle('hidden', isOwner);
     } else {
       loginSection?.classList.remove('hidden');
       licenseSection?.classList.add('hidden');
@@ -88,7 +93,16 @@
     const hint = document.querySelector('.file-drop-hint');
     if (hint) hint.innerHTML = 'Max 25 MB &nbsp;&middot;&nbsp; Encrypted before upload';
     const cta = document.getElementById('btn-pro-cta');
-    if (cta) { cta.textContent = 'Remove Pro from my account'; cta.disabled = false; cta.classList.add('price-card-cta-remove'); }
+    if (cta) {
+      if (isOwner) {
+        cta.textContent = 'Owner account';
+        cta.disabled = true;
+      } else {
+        cta.textContent = 'Remove Pro from my account';
+        cta.disabled = false;
+        cta.classList.add('price-card-cta-remove');
+      }
+    }
     const freeCta = document.getElementById('free-plan-cta');
     if (freeCta) freeCta.textContent = 'Included in Pro';
   }
@@ -96,6 +110,7 @@
   fetchAuthState().then(state => {
     isLoggedIn = state.loggedIn === true;
     userEmail  = state.email || null;
+    isOwner    = state.isOwner === true;
     updateProModalState();
     if (state.isPro) unlockProUI();
   });
@@ -110,6 +125,7 @@
       fetchAuthState().then(state => {
         isLoggedIn = state.loggedIn === true;
         userEmail  = state.email || null;
+        isOwner    = state.isOwner === true;
         updateProModalState();
         if (state.isPro) unlockProUI();
         showProModal('Blink Pro');
@@ -438,7 +454,9 @@
   });
   document.getElementById('pro-sign-out').addEventListener('click', signOutOfGoogle);
   document.getElementById('btn-pro-cta').addEventListener('click', () => {
-    if (isPro) {
+    if (isOwner) {
+      return; // nothing to remove — Pro is permanent for owner accounts
+    } else if (isPro) {
       deactivatePro();
     } else {
       showProModal('Blink Pro');
