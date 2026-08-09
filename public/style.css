@@ -147,6 +147,13 @@ body::after {
   background-clip: text;
 }
 .logo-by { font-size: .62rem; color: var(--text-dim); letter-spacing: .3px; margin-top: 2px; text-align: left; line-height: 1; }
+.logo-dot-sep {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.logo-blink-icon { height: 32px; width: auto; flex-shrink: 0; filter: drop-shadow(0 0 10px rgba(97,207,90,.3)); }
 .tagline { color: var(--text-dim); font-size: .8rem; letter-spacing: .2px; font-weight: 400; }
 @media (max-width: 560px) { .tagline { display: none; } }
 

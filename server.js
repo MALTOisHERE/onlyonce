@@ -522,7 +522,7 @@ async function sendOTPEmail(to, otp) {
         <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
           <tr>
             <td style="vertical-align:middle;padding-right:10px">
-              <img src="https://blink.malto.icu/logo.png" alt="Blink" style="width:44px;height:44px;display:block">
+              <img src="https://blink.malto.icu/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
             </td>
             <td style="vertical-align:middle;text-align:left">
               <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
@@ -552,7 +552,7 @@ async function sendViewNotification(to, viewsLeft) {
         <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
           <tr>
             <td style="vertical-align:middle;padding-right:10px">
-              <img src="https://blink.malto.icu/logo.png" alt="Blink" style="width:44px;height:44px;display:block">
+              <img src="https://blink.malto.icu/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
             </td>
             <td style="vertical-align:middle;text-align:left">
               <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
