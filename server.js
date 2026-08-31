@@ -512,7 +512,14 @@ function serverDecrypt(ciphertextB64, ivB64, k1B64, k2StoredB64, id, raw = false
 }
 
 // ── Email (Resend) ───────────────────────────────────────────────────────────
-async function sendOTPEmail(to, otp) {
+// Last 8 hex chars of the secret's UUID — enough to eyeball-match this email
+// against the tail of a specific share link, without dumping a full 36-char
+// UUID into the email body. Not sensitive: it doesn't help decrypt anything.
+function idFragment(id) {
+  return id.slice(-8);
+}
+
+async function sendOTPEmail(to, otp, id) {
   const { error } = await resendClient.emails.send({
     from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
     to,
@@ -532,14 +539,15 @@ async function sendOTPEmail(to, otp) {
         </table>
         <p style="margin:0 0 20px;font-size:15px">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
         <div style="font-size:40px;font-weight:700;letter-spacing:10px;text-align:center;padding:28px 24px;background:#131820;border-radius:10px;color:#61cf5a;font-family:monospace">${otp}</div>
-        <p style="margin:24px 0 0;font-size:12px;color:#4A5468">This code can only be used once. If you were not expecting this, ignore this email.</p>
+        <p style="margin:16px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} — if you have more than one Blink link open, check this matches the end of the one you're viewing.</p>
+        <p style="margin:12px 0 0;font-size:12px;color:#4A5468">This code can only be used once. If you were not expecting this, ignore this email.</p>
       </div>
     `,
   });
   if (error) throw new Error(error.message);
 }
 
-async function sendViewNotification(to, viewsLeft) {
+async function sendViewNotification(to, viewsLeft, id) {
   const remaining = viewsLeft > 0
     ? `It can be viewed ${viewsLeft} more time${viewsLeft === 1 ? '' : 's'} before it is destroyed.`
     : 'It has now been permanently deleted from the server.';
@@ -562,6 +570,7 @@ async function sendViewNotification(to, viewsLeft) {
         </table>
         <p style="margin:0 0 12px;font-size:15px">A secret you shared on Blink was just viewed.</p>
         <p style="margin:0;font-size:13px;color:#7A8599">${remaining}</p>
+        <p style="margin:16px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} — if you have multiple secrets out, this is which one.</p>
       </div>
     `,
   });
@@ -704,6 +713,10 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     return res.status(503).json({ error: 'Server is at capacity. Try again shortly.' });
   }
 
+  // Generated early so it can be embedded in the OTP email below, letting a
+  // recipient with multiple pending secrets match a code to the right link.
+  const id = crypto.randomUUID();
+
   // ── Pro-gated options ──
   let viewsAllowed = 1;
   if (viewsRaw !== undefined) {
@@ -766,7 +779,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     const otp = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     otpHash   = crypto.createHash('sha256').update(otp).digest('hex');
     try {
-      await sendOTPEmail(recipientEmail, otp);
+      await sendOTPEmail(recipientEmail, otp, id);
       stats.emailsSent++;
     } catch (err) {
       console.error('[email]', err.message);
@@ -776,7 +789,6 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
 
   const allowedTtl = isPro ? ALLOWED_TTL_HOURS_PRO : ALLOWED_TTL_HOURS;
   const expiresInHours = allowedTtl.has(Number(expiresInRaw)) ? Number(expiresInRaw) : DEFAULT_TTL_HOURS;
-  const id        = crypto.randomUUID();
   const expiresAt = Date.now() + expiresInHours * 3_600_000;
 
   // Apply K3 mask to K2 before storage: k2Stored = K2 XOR HMAC(K3, id)
@@ -912,7 +924,7 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
     stats.secretsRevealed++;
 
     if (secret.notifyEmail && resendClient) {
-      sendViewNotification(secret.notifyEmail, viewsLeft)
+      sendViewNotification(secret.notifyEmail, viewsLeft, id)
         .then(() => { stats.emailsSent++; })
         .catch(err => console.error('[email]', err.message));
     }
