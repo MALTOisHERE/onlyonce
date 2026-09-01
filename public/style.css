@@ -608,6 +608,38 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .copy-link-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 20px rgba(97,207,90,.35); }
 .copy-link-btn.copied { background: #00a85f; filter: none; }
 
+.qr-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.qr-btn:hover { border-color: var(--border-hi); color: var(--text); background: var(--surface-3); }
+.qr-btn.pro-lock {
+  border-style: dashed;
+  border-color: rgba(255,255,255,.14);
+  color: var(--text-dim);
+}
+.qr-btn.pro-lock:hover { border-color: rgba(97,207,90,.4); color: var(--text-muted); }
+
+.qr-code-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+.qr-code-wrap svg { display: block; width: 100%; max-width: 220px; height: auto; }
+
 .warn-box {
   display: flex;
   gap: 10px;

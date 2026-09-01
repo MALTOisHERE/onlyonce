@@ -449,6 +449,24 @@
   const proOverlay = document.getElementById('pro-overlay');
   document.getElementById('pro-modal-close').addEventListener('click', () => proOverlay.classList.add('hidden'));
   proOverlay.addEventListener('click', e => { if (e.target === proOverlay) proOverlay.classList.add('hidden'); });
+
+  // ── QR code modal (Pro) ─────────────────────────────────────────────────
+  const qrOverlay = document.getElementById('qr-overlay');
+  function showQrModal(link) {
+    const wrap = document.getElementById('qr-code-wrap');
+    wrap.innerHTML = '';
+    const qr = qrcode(0, 'M');
+    qr.addData(link);
+    qr.make();
+    wrap.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2 });
+    qrOverlay.classList.remove('hidden');
+  }
+  document.getElementById('btn-show-qr').addEventListener('click', () => {
+    const link = document.getElementById('link-output').value;
+    if (link) showQrModal(link);
+  });
+  document.getElementById('qr-modal-close').addEventListener('click', () => qrOverlay.classList.add('hidden'));
+  qrOverlay.addEventListener('click', e => { if (e.target === qrOverlay) qrOverlay.classList.add('hidden'); });
   document.getElementById('pro-modal-buy').addEventListener('click', () => {
     if (proCheckoutUrl) window.open(proCheckoutUrl, '_blank', 'noopener');
   });

@@ -226,6 +226,12 @@
           </div>
           <div class="link-box">
             <input type="text" id="link-output" readonly autocomplete="off">
+            <button class="qr-btn pro-lock" type="button" data-pro-feature="QR code sharing" title="QR code (Pro)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
+            </button>
+            <button class="qr-btn pro-real hidden" id="btn-show-qr" type="button" title="Show QR code">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
+            </button>
             <button class="copy-link-btn" id="link-copy">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               <span>Copy</span>
@@ -300,6 +306,7 @@
               <li>Multi-view links (up to 5 views)</li>
               <li>Passphrase protection</li>
               <li>Email notification when viewed</li>
+              <li>QR code sharing</li>
             </ul>
             <button class="price-card-cta price-card-cta-pro" id="btn-pro-cta" type="button">Get Pro</button>
           </div>
@@ -367,7 +374,7 @@
           <h3 class="modal-title" id="pro-modal-title">This is a Pro feature</h3>
         </div>
         <div class="modal-content">
-          <p class="modal-body"><span id="pro-feature-name">This feature</span> is part of Blink Pro: 25 MB files, 7-day expiry, multi-view links, passphrase protection, and view notifications.</p>
+          <p class="modal-body"><span id="pro-feature-name">This feature</span> is part of Blink Pro: 25 MB files, 7-day expiry, multi-view links, passphrase protection, view notifications, and QR code sharing.</p>
           <p class="modal-body modal-body-hint">$3.99/month, cancel anytime. The free plan stays free forever.</p>
 
           <div id="pro-login-section">
@@ -411,11 +418,30 @@
       </div>
     </div>
 
+    <div class="modal-overlay hidden" id="qr-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+        <div class="modal-header modal-header-green">
+          <div class="modal-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
+          </div>
+          <h3 class="modal-title" id="qr-modal-title">Scan to open</h3>
+        </div>
+        <div class="modal-content">
+          <p class="modal-body">Scan this with another device's camera to open the link directly &mdash; no copy-pasting.</p>
+          <div class="qr-code-wrap" id="qr-code-wrap"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" id="qr-modal-close">Close</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="footer">
       Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; <a href="#pricing" class="footer-link">Pro</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
     </footer>
   </div>
 
+  <script src="/qrcode.min.js"></script>
   <script src="/app.js"></script>
   <script src="/register-sw.js"></script>
 </body>
