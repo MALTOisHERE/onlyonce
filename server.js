@@ -71,6 +71,9 @@ const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE
 // live Google session per account (Activation Limit = 1), not a copy-pasteable
 // key. This limiter just guards against runaway/automated abuse of one account.
 const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO_USAGE_RATE_LIMIT || '50', 10));
+// Free tier has no account concept, so this is bucketed by IP — the only
+// signal available for an anonymous creator.
+const freeUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.FREE_USAGE_RATE_LIMIT || '5', 10));
 
 // ── Blink Pro licensing (Lemon Squeezy + Google Sign-In) ────────────────────
 // The license key and its Lemon Squeezy instance ID live ONLY on the server,
@@ -681,6 +684,12 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     if (retryAfter > 0) {
       res.setHeader('Retry-After', String(retryAfter));
       return res.status(429).json({ error: 'This license has reached its daily usage limit. Try again tomorrow, or contact support if this seems wrong.' });
+    }
+  } else {
+    const retryAfter = freeUsageLimiter.check(req.ip);
+    if (retryAfter > 0) {
+      res.setHeader('Retry-After', String(retryAfter));
+      return res.status(429).json({ error: 'Free plan is limited to 5 secrets per day. Upgrade to Pro for more, or try again tomorrow.' });
     }
   }
   const isFileSecret = isFile === true;

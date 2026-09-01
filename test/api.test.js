@@ -4,8 +4,9 @@
 process.env.NODE_ENV          = 'test';
 process.env.SECRET_KEY        = 'test-hmac-secret-key-for-k3';
 process.env.CIPHER_KEY        = 'deadbeef'.repeat(8); // 64 hex chars = 32 bytes
-process.env.CREATE_RATE_LIMIT = '1000';
-process.env.READ_RATE_LIMIT   = '1000';
+process.env.CREATE_RATE_LIMIT     = '1000';
+process.env.READ_RATE_LIMIT       = '1000';
+process.env.FREE_USAGE_RATE_LIMIT = '1000';
 
 const { describe, test } = require('node:test');
 const assert             = require('node:assert/strict');
