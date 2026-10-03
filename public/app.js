@@ -574,9 +574,10 @@
         payload.mimetype = fileToEncrypt.type || 'application/octet-stream';
       }
 
+      let viewsCount = 1;
       if (isPro) {
-        const views = parseInt(document.querySelector('input[name="views"]:checked')?.value || '1', 10);
-        if (views > 1) payload.views = views;
+        viewsCount = parseInt(document.querySelector('input[name="views"]:checked')?.value || '1', 10);
+        if (viewsCount > 1) payload.views = viewsCount;
         const passphrase = document.getElementById('passphrase-input')?.value || '';
         if (passphrase) {
           if (passphrase.length < 4 || passphrase.length > 128) {
@@ -613,7 +614,8 @@
       setLinkPending(true);
 
       const expiryLabel = expiresIn === 168 ? '7 days' : expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
-      document.querySelector('.warn-box span').textContent = `View once only · Expires in ${expiryLabel} if unopened · Never stored in plaintext`;
+      const viewsLabel = viewsCount === 1 ? 'View once only' : `Can be viewed ${viewsCount} times`;
+      document.querySelector('.warn-box span').textContent = `${viewsLabel} · Expires after ${expiryLabel} if unopened · Never stored in plaintext`;
 
       if (!fileToEncrypt) {
         document.getElementById('secret-input').value = '';

@@ -2015,7 +2015,31 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 
 @media (max-width: 640px) {
-  .pricing-grid { grid-template-columns: 1fr; }
+  /* Cards stay cards, but swipe left/right instead of stacking vertically.
+     Each card takes most of the width so the next one peeks at the edge,
+     signaling there's more to swipe to. */
+  .pricing-grid {
+    display: flex;
+    grid-template-columns: unset;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* overflow-x: auto forces overflow-y to clip too (can't mix auto/visible
+       per spec), which cuts off the "PRO" badge and the Pro card's ambient
+       glow where they poke above the card's top edge. Top padding gives the
+       badge room; the glow itself is toned down below so it fits too. */
+    padding-top: 26px;
+    padding-bottom: 2px;
+  }
+  .pricing-grid::-webkit-scrollbar { display: none; }
+  .price-card-pro {
+    box-shadow: 0 0 20px rgba(97,207,90,.14), inset 0 1px 0 rgba(97,207,90,.15);
+  }
+  .price-card {
+    scroll-snap-align: start;
+    flex: 0 0 86%;
+  }
 }
 
 /* ── Micro-interactions ── */
@@ -2037,11 +2061,33 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
-  .card, .reveal-card, .secret-card, .expired-card, .cleared-card, .file-reveal-card { padding: 22px 20px; }
+  /* Shrink the outer page gutter so content reads as full-width on a phone
+     screen instead of a card floating with wide margins on both sides. */
+  .main, .view-main { padding-left: 10px; padding-right: 10px; }
+  .about-main { padding-left: 12px; padding-right: 12px; gap: 40px; }
+  .hero { padding-left: 10px; padding-right: 10px; }
+
+  /* The main secret/state card goes fully edge-to-edge: cancel out the
+     container's side padding and drop the rounded corners/side borders so
+     it reads as the screen itself, not a floating box inside it. */
+  .card, .reveal-card, .secret-card, .expired-card, .cleared-card, .file-reveal-card, .otp-card, .stat-card {
+    padding: 20px 16px;
+    margin-left: -10px;
+    margin-right: -10px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .modal { max-width: calc(100vw - 24px); }
+  .modal-content, .modal-actions { padding-left: 18px; padding-right: 18px; }
+
   .features { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .feature { padding: 14px 10px; gap: 8px; }
   .feature-icon { width: 38px; height: 38px; }
   .checkboxes { grid-template-columns: 1fr; }
+  .security-card { padding: 16px; }
+  .pricing-grid { gap: 12px; }
+  .price-card { padding: 22px 18px; }
 }
 @media (max-width: 380px) {
   .features { grid-template-columns: 1fr; }

@@ -522,7 +522,19 @@ function idFragment(id) {
   return id.slice(-8);
 }
 
-async function sendOTPEmail(to, otp, id) {
+function formatExpiry(hours) {
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'}`;
+}
+
+function viewsSetByLine(viewsAllowed) {
+  return viewsAllowed > 1
+    ? `The sender set this secret to be viewed up to ${viewsAllowed} times.`
+    : 'The sender set this secret to be viewed only once.';
+}
+
+async function sendOTPEmail(to, otp, id, viewsAllowed = 1, expiresInHours = 48) {
   const { error } = await resendClient.emails.send({
     from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
     to,
@@ -542,7 +554,8 @@ async function sendOTPEmail(to, otp, id) {
         </table>
         <p style="margin:0 0 20px;font-size:15px">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
         <div style="font-size:40px;font-weight:700;letter-spacing:10px;text-align:center;padding:28px 24px;background:#131820;border-radius:10px;color:#61cf5a;font-family:monospace">${otp}</div>
-        <p style="margin:16px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} — if you have more than one Blink link open, check this matches the end of the one you're viewing.</p>
+        <p style="margin:16px 0 0;font-size:12px;color:#7A8599">${viewsSetByLine(viewsAllowed)} It expires in ${formatExpiry(expiresInHours)} if not opened.</p>
+        <p style="margin:12px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} (if you have more than one Blink link open, check this matches the end of the one you're viewing)</p>
         <p style="margin:12px 0 0;font-size:12px;color:#4A5468">This code can only be used once. If you were not expecting this, ignore this email.</p>
       </div>
     `,
@@ -573,7 +586,7 @@ async function sendViewNotification(to, viewsLeft, id) {
         </table>
         <p style="margin:0 0 12px;font-size:15px">A secret you shared on Blink was just viewed.</p>
         <p style="margin:0;font-size:13px;color:#7A8599">${remaining}</p>
-        <p style="margin:16px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} — if you have multiple secrets out, this is which one.</p>
+        <p style="margin:16px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} (if you have multiple secrets out, this is which one)</p>
       </div>
     `,
   });
@@ -771,6 +784,12 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     return res.status(403).json({ error: 'pro_required', feature: '7-day expiry' });
   }
 
+  // Computed before the OTP email below so the email can tell the recipient
+  // how long the link lasts and how many times the sender allowed it to be viewed.
+  const allowedTtl = isPro ? ALLOWED_TTL_HOURS_PRO : ALLOWED_TTL_HOURS;
+  const expiresInHours = allowedTtl.has(Number(expiresInRaw)) ? Number(expiresInRaw) : DEFAULT_TTL_HOURS;
+  const expiresAt = Date.now() + expiresInHours * 3_600_000;
+
   let otpHash = null;
   if (recipientEmail !== undefined) {
     if (!resendClient) {
@@ -788,17 +807,13 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     const otp = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     otpHash   = crypto.createHash('sha256').update(otp).digest('hex');
     try {
-      await sendOTPEmail(recipientEmail, otp, id);
+      await sendOTPEmail(recipientEmail, otp, id, viewsAllowed, expiresInHours);
       stats.emailsSent++;
     } catch (err) {
       console.error('[email]', err.message);
       return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
     }
   }
-
-  const allowedTtl = isPro ? ALLOWED_TTL_HOURS_PRO : ALLOWED_TTL_HOURS;
-  const expiresInHours = allowedTtl.has(Number(expiresInRaw)) ? Number(expiresInRaw) : DEFAULT_TTL_HOURS;
-  const expiresAt = Date.now() + expiresInHours * 3_600_000;
 
   // Apply K3 mask to K2 before storage: k2Stored = K2 XOR HMAC(K3, id)
   let k2Stored = k2;
