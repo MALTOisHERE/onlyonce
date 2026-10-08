@@ -1,6 +1,8 @@
 (function () {
   try {
     var t = localStorage.getItem('blink-theme');
-    if (t) document.documentElement.setAttribute('data-theme', t);
-  } catch (e) {}
+    document.documentElement.setAttribute('data-theme', t || 'light');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
 })();

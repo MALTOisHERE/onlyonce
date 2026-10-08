@@ -192,7 +192,16 @@ body {
   border-radius: 99px;
   padding: 3px 9px;
 }
-.logo-blink-icon { height: 32px; width: auto; flex-shrink: 0; filter: drop-shadow(0 0 10px rgba(97,207,90,.3)); }
+.logo-blink-icon {
+  display: inline-block;
+  height: 32px;
+  width: 49px;
+  flex-shrink: 0;
+  background-color: var(--green);
+  -webkit-mask: url('/blink-logo.png') center / contain no-repeat;
+  mask: url('/blink-logo.png') center / contain no-repeat;
+  filter: drop-shadow(0 0 10px rgba(97,207,90,.3));
+}
 .tagline { color: var(--text-dim); font-size: .8rem; letter-spacing: .2px; font-weight: 400; }
 @media (max-width: 560px) { .tagline { display: none; } }
 .header-right { display: flex; align-items: center; gap: 14px; }
@@ -271,22 +280,6 @@ body {
   line-height: 1.6;
   text-wrap: balance;
 }
-.hero-trust {
-  display: flex;
-  gap: 22px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-.hero-trust-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: .8125rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-.hero-trust-item svg { flex-shrink: 0; }
-
 /* ── Main ── */
 .main {
   flex: 1;
@@ -308,7 +301,6 @@ body {
   .hero { text-align: center; }
   .hero-badge { margin-left: auto; margin-right: auto; }
   .hero-sub { margin: 0 auto; }
-  .hero-trust { justify-content: center; }
 }
 
 /* ── Card ── */
@@ -797,6 +789,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   color: var(--green);
   line-height: 1;
   letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.2ch;
 }
 .stat-label {
   font-size: .92rem;
@@ -805,7 +799,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   letter-spacing: .01em;
 }
 .stat-sub {
-  margin-left: auto;
+  flex-basis: 100%;
+  margin-left: 0;
   font-size: .78rem;
   color: var(--text-dim);
   letter-spacing: .01em;
@@ -1205,12 +1200,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .footer-link:hover { opacity: .75; }
 .footer-logo {
+  display: inline-block;
   width: 14px;
   height: 14px;
   vertical-align: -2px;
   margin-right: 4px;
-  filter: grayscale(1);
-  opacity: .6;
+  background-color: currentColor;
+  -webkit-mask: url('/logo.png') center / contain no-repeat;
+  mask: url('/logo.png') center / contain no-repeat;
 }
 .logo-sep {
   width: 1px;
