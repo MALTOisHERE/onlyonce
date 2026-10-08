@@ -17,15 +17,14 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#61cf5a">
   <link rel="stylesheet" href="/style.css">
+  <script src="/theme-init.js"></script>
 </head>
 <body>
   <div class="app">
     <header class="header">
       <div class="logo-wrap">
-        <img src="/logo.png" alt="MALTO" class="logo">
-        <span class="logo-dot-sep">&middot;</span>
         <img src="/blink-logo.png" alt="Blink" class="logo-blink-icon">
-        <div>
+        <div class="logo-title">
           <span class="logo-text">Blink</span>
           <div class="logo-by">by MALTO</div>
         </div>
@@ -35,20 +34,75 @@
           Install app
         </button>
       </div>
-      <p class="tagline">Once seen, forever gone.</p>
+      <div class="header-right">
+        <p class="tagline">Once seen, forever gone.</p>
+        <button id="btn-theme-toggle" class="btn-theme-toggle" type="button" aria-label="Switch to dark mode">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        AES-256 encrypted &nbsp;&middot;&nbsp; Zero knowledge &nbsp;&middot;&nbsp; Open source
-      </div>
-      <h1 class="hero-title">Share secrets that <span class="hero-flash">disappear</span>.</h1>
-      <p class="hero-sub">Send passwords, keys, and files through encrypted links that self-destruct the moment they are seen.</p>
-    </section>
-
     <main class="main">
-      <div class="card">
+      <div class="hero-row">
+        <section class="hero">
+          <div class="hero-top">
+            <div class="hero-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              AES-256 encrypted &nbsp;&middot;&nbsp; Zero knowledge &nbsp;&middot;&nbsp; Open source
+            </div>
+            <h1 class="hero-title">Share secrets that <span class="hero-flash">disappear</span>.</h1>
+            <p class="hero-sub">Send passwords, keys, and files through encrypted links that self-destruct the moment they are seen.</p>
+            <div class="hero-trust">
+              <div class="hero-trust-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                E2E Encrypted
+              </div>
+              <div class="hero-trust-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                View Once
+              </div>
+              <div class="hero-trust-item">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Auto-Expires
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-bottom">
+            <div class="features">
+              <div class="feature">
+                <div class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <span>E2E Encrypted</span>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </div>
+                <span>View Once</span>
+              </div>
+              <div class="feature">
+                <div class="feature-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <span>Auto-Expires</span>
+              </div>
+            </div>
+
+            <div class="stat-card hidden" id="stat-card">
+              <div class="stat-number" id="secrets-count">0</div>
+              <div class="stat-label">secrets shared securely</div>
+              <div class="stat-sub">end-to-end encrypted &nbsp;·&nbsp; viewed once &nbsp;·&nbsp; then gone forever</div>
+            </div>
+
+            <a href="/about" class="about-link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              How it works &amp; FAQ
+            </a>
+          </div>
+        </section>
+        <div class="card">
         <div class="tabs">
           <button class="tab active" data-tab="enter">Enter Secret</button>
           <button class="tab" data-tab="generate">Generate Password</button>
@@ -76,43 +130,12 @@
               <button class="icon-btn" id="gen-refresh" title="Regenerate">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               </button>
+              <button class="icon-btn" id="gen-options" title="Password options">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
             </div>
           </div>
-
-          <div class="slider-field">
-            <label>Length <span id="length-val">16</span></label>
-            <input type="range" id="length-slider" min="8" max="64" value="16">
-          </div>
-
-          <div class="checkboxes">
-            <label class="check-label">
-              <input type="checkbox" id="opt-upper" checked>
-              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span>Uppercase A–Z</span>
-            </label>
-            <label class="check-label">
-              <input type="checkbox" id="opt-lower" checked>
-              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span>Lowercase a–z</span>
-            </label>
-            <label class="check-label">
-              <input type="checkbox" id="opt-numbers" checked>
-              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span>Numbers 0–9</span>
-            </label>
-            <label class="check-label">
-              <input type="checkbox" id="opt-symbols" checked>
-              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
-              <span>Symbols !@#$…</span>
-            </label>
-          </div>
-
-          <div class="strength-wrap">
-            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
-            <p class="strength-label">Strength: <span id="strength-text"></span></p>
-          </div>
-
-          <button class="btn-secondary" id="btn-generate">Generate</button>
+          <p class="email-hint">Tune length, character set, and strength in <button class="btn-link" type="button" id="gen-options-link">password options</button>.</p>
         </div>
 
         <!-- File Tab -->
@@ -217,63 +240,7 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Encrypt &amp; Create Link
         </button>
-
-        <div class="result hidden" id="result">
-          <div class="result-divider"></div>
-          <div class="result-header">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Secure link ready
-          </div>
-          <div class="link-box">
-            <input type="text" id="link-output" readonly autocomplete="off">
-            <button class="qr-btn pro-lock" type="button" data-pro-feature="QR code sharing" title="QR code (Pro)">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
-            </button>
-            <button class="qr-btn pro-real hidden" id="btn-show-qr" type="button" title="Show QR code">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
-            </button>
-            <button class="copy-link-btn" id="link-copy">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              <span>Copy</span>
-            </button>
-          </div>
-          <div class="warn-box">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warn-box-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span>View once only &nbsp;·&nbsp; Expires in 24 hours if unopened &nbsp;·&nbsp; Never stored in plaintext</span>
-          </div>
         </div>
-      </div>
-
-      <a href="/about" class="about-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        How it works &amp; FAQ
-      </a>
-
-      <div class="features">
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <span>E2E Encrypted</span>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </div>
-          <span>View Once</span>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <span>Auto-Expires</span>
-        </div>
-      </div>
-
-      <div class="stat-card hidden" id="stat-card">
-        <div class="stat-number" id="secrets-count">0</div>
-        <div class="stat-label">secrets shared securely</div>
-        <div class="stat-sub">end-to-end encrypted &nbsp;·&nbsp; viewed once &nbsp;·&nbsp; then gone forever</div>
       </div>
 
       <section class="pricing" id="pricing">
@@ -436,12 +403,95 @@
       </div>
     </div>
 
+    <div class="modal-overlay hidden" id="gen-options-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="gen-options-title">
+        <div class="modal-header modal-header-green">
+          <div class="modal-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <h3 class="modal-title" id="gen-options-title">Password options</h3>
+        </div>
+        <div class="modal-content">
+          <div class="slider-field">
+            <label>Length <span id="length-val">16</span></label>
+            <input type="range" id="length-slider" min="8" max="64" value="16">
+          </div>
+
+          <div class="checkboxes">
+            <label class="check-label">
+              <input type="checkbox" id="opt-upper" checked>
+              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span>Uppercase A–Z</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="opt-lower" checked>
+              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span>Lowercase a–z</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="opt-numbers" checked>
+              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span>Numbers 0–9</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="opt-symbols" checked>
+              <span class="checkmark"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>
+              <span>Symbols !@#$…</span>
+            </label>
+          </div>
+
+          <div class="strength-wrap">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <p class="strength-label">Strength: <span id="strength-text"></span></p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" id="gen-options-close">Close</button>
+          <button class="btn-modal-confirm" id="btn-generate">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay hidden" id="result">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <div class="modal-header modal-header-green">
+          <div class="modal-header-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3 class="modal-title" id="result-title">Secure link ready</h3>
+        </div>
+        <div class="modal-content">
+          <div class="link-box">
+            <input type="text" id="link-output" readonly autocomplete="off">
+            <button class="qr-btn pro-lock" type="button" data-pro-feature="QR code sharing" title="QR code (Pro)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
+            </button>
+            <button class="qr-btn pro-real hidden" id="btn-show-qr" type="button" title="Show QR code">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="14" y2="14.01"/><line x1="14" y1="18" x2="14" y2="18.01"/><line x1="18" y1="14" x2="18" y2="14.01"/><line x1="18" y1="18" x2="18" y2="18.01"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/></svg>
+            </button>
+            <button class="copy-link-btn" id="link-copy">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="warn-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="warn-box-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>View once only &nbsp;·&nbsp; Expires in 24 hours if unopened &nbsp;·&nbsp; Never stored in plaintext</span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" id="result-close">Close</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="footer">
-      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; <a href="#pricing" class="footer-link">Pro</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
+      Blink &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; <a href="#pricing" class="footer-link">Pro</a> &nbsp; &middot; &nbsp; Made with &hearts; by <a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link"><img src="/logo.png" alt="" class="footer-logo"></a>
     </footer>
   </div>
 
   <script src="/qrcode.min.js"></script>
+  <script src="/theme-toggle.js"></script>
   <script src="/app.js"></script>
   <script src="/register-sw.js"></script>
 </body>

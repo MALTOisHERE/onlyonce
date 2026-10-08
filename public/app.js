@@ -1,6 +1,15 @@
 (() => {
   const MAX_SECRET_BYTES = 10 * 1024; // 10 KB
 
+  // All modal overlays share one stacking context with the same z-index, so
+  // whichever one is LAST in the DOM paints on top. Moving an overlay to the
+  // end of <body> right before showing it guarantees it's the one the user
+  // sees, even if another modal is already open underneath it.
+  function openModal(overlay) {
+    document.body.appendChild(overlay);
+    overlay.classList.remove('hidden');
+  }
+
   // ── Pro license state ──────────────────────────────────────────────────────
   // Checkout URL comes from the server (PRO_CHECKOUT_URL env) so deployments
   // configure their own store without touching code.
@@ -254,11 +263,26 @@
   ['opt-upper', 'opt-lower', 'opt-numbers', 'opt-symbols'].forEach(id => {
     document.getElementById(id).addEventListener('change', regenerate);
   });
-  document.getElementById('btn-generate').addEventListener('click', regenerate);
   document.getElementById('gen-refresh').addEventListener('click', regenerate);
   document.getElementById('gen-copy').addEventListener('click', () => {
     const val = document.getElementById('gen-preview').value;
     if (val) copyText(val, document.getElementById('gen-copy'));
+  });
+
+  // ── Password options modal ──────────────────────────────────────────────
+  // Length/charset/strength controls live in a popup rather than inline, so
+  // switching to this tab never changes the card's height (which otherwise
+  // shifted the hero column next to it, since the two sit in a centered row).
+  const genOptionsOverlay = document.getElementById('gen-options-overlay');
+  function openGenOptions() { openModal(genOptionsOverlay); }
+  function closeGenOptions() { genOptionsOverlay.classList.add('hidden'); }
+  document.getElementById('gen-options').addEventListener('click', openGenOptions);
+  document.getElementById('gen-options-link').addEventListener('click', openGenOptions);
+  document.getElementById('gen-options-close').addEventListener('click', closeGenOptions);
+  genOptionsOverlay.addEventListener('click', e => { if (e.target === genOptionsOverlay) closeGenOptions(); });
+  document.getElementById('btn-generate').addEventListener('click', () => {
+    regenerate();
+    closeGenOptions();
   });
 
   // ── File tab ───────────────────────────────────────────────────────────────
@@ -395,7 +419,7 @@
     return new Promise(resolve => {
       document.getElementById('modal-email').textContent = email;
       const overlay = document.getElementById('email-confirm-overlay');
-      overlay.classList.remove('hidden');
+      openModal(overlay);
       const confirmBtn = document.getElementById('modal-confirm');
       const cancelBtn  = document.getElementById('modal-cancel');
       function close(result) {
@@ -417,7 +441,7 @@
       document.getElementById('tab-warn-leave-label').textContent = discardLabel;
       document.getElementById('tab-warn-stay-label').textContent = safeLabel;
       const overlay = document.getElementById('tab-warn-overlay');
-      overlay.classList.remove('hidden');
+      openModal(overlay);
       function close(result) {
         overlay.classList.add('hidden');
         document.getElementById('tab-warn-leave').replaceWith(document.getElementById('tab-warn-leave').cloneNode(true));
@@ -436,7 +460,7 @@
       featureName.charAt(0).toUpperCase() + featureName.slice(1);
     document.getElementById('license-error').classList.add('hidden');
     updateProModalState();
-    document.getElementById('pro-overlay').classList.remove('hidden');
+    openModal(document.getElementById('pro-overlay'));
   }
 
   document.querySelectorAll('[data-pro-feature]').forEach(el => {
@@ -459,7 +483,7 @@
     qr.addData(link);
     qr.make();
     wrap.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2 });
-    qrOverlay.classList.remove('hidden');
+    openModal(qrOverlay);
   }
   document.getElementById('btn-show-qr').addEventListener('click', () => {
     const link = document.getElementById('link-output').value;
@@ -467,6 +491,25 @@
   });
   document.getElementById('qr-modal-close').addEventListener('click', () => qrOverlay.classList.add('hidden'));
   qrOverlay.addEventListener('click', e => { if (e.target === qrOverlay) qrOverlay.classList.add('hidden'); });
+
+  // ── Result modal (secure link ready) ────────────────────────────────────
+  // Shown as a popup instead of growing inline in the card, so creating a
+  // link never changes the card's height (which would shift the hero column
+  // next to it on the homepage).
+  const resultOverlay = document.getElementById('result');
+  async function closeResult() {
+    if (linkPending) {
+      const discard = await confirmDiscard(
+        'You have a secure link ready to share. Closing this without copying it means you will need to create a new one.',
+        'Close without copying'
+      );
+      if (!discard) return;
+      setLinkPending(false);
+    }
+    hideResult();
+  }
+  document.getElementById('result-close').addEventListener('click', closeResult);
+  resultOverlay.addEventListener('click', e => { if (e.target === resultOverlay) closeResult(); });
   document.getElementById('pro-modal-buy').addEventListener('click', () => {
     if (proCheckoutUrl) window.open(proCheckoutUrl, '_blank', 'noopener');
   });
@@ -610,7 +653,7 @@
 
       const viewUrl = `${window.location.origin}/view/${id}#${encodeURIComponent(k1)}`;
       document.getElementById('link-output').value = viewUrl;
-      document.getElementById('result').classList.remove('hidden');
+      openModal(resultOverlay);
       setLinkPending(true);
 
       const expiryLabel = expiresIn === 168 ? '7 days' : expiresIn === 1 ? '1 hour' : `${expiresIn} hours`;
