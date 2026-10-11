@@ -133,10 +133,15 @@ blink/
 ├── public/
 │   ├── index.html     # Create page
 │   ├── view.html      # View-once page
-│   ├── app.js         # Encrypt, key split, generate password, create link
-│   ├── view.js        # Reveal flow, OTP flow
-│   ├── style.css      # Dark theme UI
-│   └── logo.png       # App logo
+│   ├── about.html      # How it works & FAQ
+│   ├── app.js          # Encrypt, key split, generate password, create link
+│   ├── view.js         # Reveal flow, OTP flow
+│   ├── about.js        # FAQ accordion
+│   ├── style.css        # Light/dark theme UI
+│   ├── theme-init.js    # Applies saved theme before first paint
+│   ├── theme-toggle.js  # Light/dark toggle button
+│   ├── images/           # Logos & PWA icons
+│   └── fonts/            # Self-hosted woff2 files
 ├── Dockerfile
 ├── docker-compose.yml
 └── .env.example

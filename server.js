@@ -9,6 +9,8 @@ const morgan       = require('morgan');
 
 const { RateLimiter } = require('./lib/ratelimiter');
 
+const { version: APP_VERSION } = require('./package.json');
+
 const app = express();
 
 // ── Trust reverse proxy (nginx, Cloudflare, etc.) ──────────────────────────
@@ -25,7 +27,7 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy',            'no-referrer');
   res.setHeader('Permissions-Policy',         'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Cross-Origin-Opener-Policy',   'same-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
@@ -34,8 +36,8 @@ app.use((req, res, next) => {
       "script-src 'self'",
       "style-src 'self'",
       "font-src 'self'",
-      "img-src 'self' data:",
-      "connect-src 'self'",
+      "img-src 'self' data: https://assets.malto.icu",
+      "connect-src 'self' https://assets.malto.icu",
       "manifest-src 'self'",
       "worker-src 'self'",
       "frame-ancestors 'none'",
@@ -544,7 +546,7 @@ async function sendOTPEmail(to, otp, id, viewsAllowed = 1, expiresInHours = 48) 
         <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
           <tr>
             <td style="vertical-align:middle;padding-right:10px">
-              <img src="https://blink.malto.icu/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
+              <img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
             </td>
             <td style="vertical-align:middle;text-align:left">
               <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
@@ -576,7 +578,7 @@ async function sendViewNotification(to, viewsLeft, id) {
         <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
           <tr>
             <td style="vertical-align:middle;padding-right:10px">
-              <img src="https://blink.malto.icu/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
+              <img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
             </td>
             <td style="vertical-align:middle;text-align:left">
               <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
@@ -965,7 +967,7 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
 // public payment page) — env keeps it configurable per deployment.
 app.get('/api/config', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  res.json({ proCheckoutUrl: process.env.PRO_CHECKOUT_URL || null });
+  res.json({ proCheckoutUrl: process.env.PRO_CHECKOUT_URL || null, version: APP_VERSION });
 });
 
 // ── GET /api/stats ───────────────────────────────────────────────────────────

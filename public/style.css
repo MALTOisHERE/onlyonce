@@ -198,8 +198,8 @@ body {
   width: 49px;
   flex-shrink: 0;
   background-color: var(--green);
-  -webkit-mask: url('/blink-logo.png') center / contain no-repeat;
-  mask: url('/blink-logo.png') center / contain no-repeat;
+  -webkit-mask: url('https://assets.malto.icu/blink/blink-logo.png') center / contain no-repeat;
+  mask: url('https://assets.malto.icu/blink/blink-logo.png') center / contain no-repeat;
   filter: drop-shadow(0 0 10px rgba(97,207,90,.3));
 }
 .tagline { color: var(--text-dim); font-size: .8rem; letter-spacing: .2px; font-weight: 400; }
@@ -1206,8 +1206,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   vertical-align: -2px;
   margin-right: 4px;
   background-color: currentColor;
-  -webkit-mask: url('/logo.png') center / contain no-repeat;
-  mask: url('/logo.png') center / contain no-repeat;
+  -webkit-mask: url('https://assets.malto.icu/blink/logo.png') center / contain no-repeat;
+  mask: url('https://assets.malto.icu/blink/logo.png') center / contain no-repeat;
 }
 .logo-sep {
   width: 1px;
