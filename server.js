@@ -985,6 +985,12 @@ app.get('/about', readLimiter.middleware(), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'about.html'));
 });
 
+// ── Privacy policy page ────────────────────────────────────────────────────
+app.get('/privacy', readLimiter.middleware(), (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+
 // ── View page ────────────────────────────────────────────────────────────────
 app.get('/view/:id', readLimiter.middleware(), (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.redirect('/');

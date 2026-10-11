@@ -96,9 +96,9 @@ Copy `.env.example` to `.env` for local overrides.
 
 ### CI/CD
 
-- **`ci.yml`** — runs automatically on every push/PR to `main`: install, lint, test, `npm audit --audit-level=high`.
-- **`release.yml`** — manual only. Actions tab → "Release" → "Run workflow" → pick `patch`/`minor`/`major`. Runs lint+test first, then bumps `package.json`'s version via `npm version`, commits, tags (`vX.Y.Z`), pushes, and publishes a GitHub Release with auto-generated notes.
-- **`deploy.yml`** — manual only, intentionally decoupled from releases (deploying and cutting a version are separate decisions). SSHes into the VPS and runs `git pull && docker compose up -d --build`. Needs `VPS_HOST`, `VPS_USER`, and `VPS_SSH_KEY` set as repo secrets (Settings → Secrets and variables → Actions).
+- **`ci.yml`**: runs automatically on every push/PR to `main` (install, lint, test, `npm audit --audit-level=high`).
+- **`release.yml`**: manual only. Actions tab → "Release" → "Run workflow" → pick `patch`/`minor`/`major`. Runs lint+test first, then bumps `package.json`'s version via `npm version`, commits, tags (`vX.Y.Z`), pushes, and publishes a GitHub Release with auto-generated notes.
+- **`deploy.yml`**: manual only, intentionally decoupled from releases (deploying and cutting a version are separate decisions). SSHes into the VPS and runs `git pull && docker compose up -d --build`. Needs `VPS_HOST`, `VPS_USER`, and `VPS_SSH_KEY` set as repo secrets (Settings → Secrets and variables → Actions).
 
 ### nginx config
 
@@ -161,7 +161,7 @@ blink/
 └── .env.example
 ```
 
-Logos and icons (`blink-logo.png`, `logo.png`, `logo-192.png`, `logo-512.png`) are not in this repo — the hosted instance at blink.malto.icu serves them from `https://assets.malto.icu/blink/`. If you self-host, either swap those URLs in `public/*.html`, `public/style.css`, and `public/manifest.json` for your own, or point them at a copy of the same files on any host that sends `Access-Control-Allow-Origin` (needed for the CSS-masked logos and the manifest icons specifically).
+Logos and icons (`blink-logo.png`, `logo.png`, `logo-192.png`, `logo-512.png`) are not in this repo: the hosted instance at blink.malto.icu serves them from `https://assets.malto.icu/blink/`. If you self-host, either swap those URLs in `public/*.html`, `public/style.css`, and `public/manifest.json` for your own, or point them at a copy of the same files on any host that sends `Access-Control-Allow-Origin` (needed for the CSS-masked logos and the manifest icons specifically).
 
 ## License
 

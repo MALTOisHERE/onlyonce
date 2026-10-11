@@ -890,6 +890,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border-bottom: 1px solid var(--border);
 }
 
+/* ── Privacy policy prose ── */
+.privacy-section p { font-size: .9rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 14px; }
+.privacy-section ul { margin: 0 0 14px 0; padding-left: 20px; }
+.privacy-section li { font-size: .9rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 8px; }
+.privacy-section li strong { color: var(--text); }
+.privacy-section h3 { font-size: .92rem; font-weight: 600; color: var(--text); margin: 20px 0 10px; }
+.privacy-updated { font-size: .78rem; color: var(--text-dim); margin-bottom: 28px; }
+
 /* ── Phase labels + divider ── */
 .about-phase-label {
   font-size: .72rem;
@@ -1205,7 +1213,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   height: 14px;
   vertical-align: -2px;
   margin-right: 4px;
-  background-color: currentColor;
+  background-color: var(--text-muted);
   -webkit-mask: url('https://assets.malto.icu/blink/logo.png') center / contain no-repeat;
   mask: url('https://assets.malto.icu/blink/logo.png') center / contain no-repeat;
 }

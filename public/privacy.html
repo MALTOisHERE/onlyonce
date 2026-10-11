@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blink: Privacy Policy</title>
+  <meta name="description" content="What Blink's website and browser extension do and don't collect, why, and for how long.">
+  <meta property="og:title" content="Blink: Privacy Policy">
+  <meta property="og:description" content="What Blink's website and browser extension do and don't collect, why, and for how long.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://blink.malto.icu/privacy">
+  <meta property="og:image" content="https://assets.malto.icu/blink/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Blink: Privacy Policy">
+  <link rel="icon" type="image/png" href="https://assets.malto.icu/blink/logo.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#61cf5a">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/theme-init.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo-wrap">
+        <a href="/" class="logo-wrap-link">
+          <span class="logo-blink-icon" role="img" aria-label="Blink"></span>
+          <div class="logo-title">
+            <span class="logo-text">Blink</span>
+            <div class="logo-by">by MALTO</div>
+          </div>
+        </a>
+        <span class="logo-sep hidden"></span>
+      </div>
+      <div class="header-right">
+        <p class="tagline">Once seen, forever gone.</p>
+        <button id="btn-theme-toggle" class="btn-theme-toggle" type="button" aria-label="Switch to dark mode">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="about-main">
+
+      <section class="about-hero">
+        <div class="about-hero-badge">Privacy</div>
+        <h1 class="about-hero-title">Privacy Policy</h1>
+        <p class="about-hero-desc">This covers both blink.malto.icu and the Blink browser extension. The short version: your secret is encrypted on your own device before anything leaves it, and the server only ever sees ciphertext.</p>
+      </section>
+
+      <section class="about-section privacy-section">
+        <p class="privacy-updated">Last updated: October 2026</p>
+
+        <h2 class="about-section-title">What we never see</h2>
+        <p>Your secret's plaintext never reaches our server, in any form, from either the website or the extension. Encryption happens entirely in your browser (or the extension's own sandboxed context) using the Web Crypto API before any network request is made. The server only ever stores ciphertext and a masked half of the encryption key, both of which it deletes the moment the secret is viewed or expires.</p>
+
+        <h2 class="about-section-title">What is processed, and why</h2>
+        <ul>
+          <li><strong>Ciphertext, IV, and masked key half:</strong> held in server memory only (never written to disk), for as long as the secret is unviewed and unexpired. Deleted immediately on first view, or automatically purged at your chosen expiry.</li>
+          <li><strong>Recipient email (optional):</strong> if you use the "lock to a recipient" feature, that address is used once to send a one-time verification code via our email provider, Resend. It is not kept beyond the secret's lifetime and is never added to a mailing list.</li>
+          <li><strong>Google account (optional, Pro sign-in):</strong> we store a one-way hash of your Google account ID plus the email address Google provides, solely to tie a Pro license to your account. We never receive or request your Google password.</li>
+          <li><strong>Payment details (optional, Pro):</strong> handled entirely by Lemon Squeezy. Blink's own server never receives your card number or billing details.</li>
+          <li><strong>IP address:</strong> used transiently for rate limiting (to stop abuse), not logged or stored.</li>
+        </ul>
+
+        <h2 class="about-section-title">The browser extension, specifically</h2>
+        <p>The extension (popup, right-click menu, and floating selection button) is built to need as little access as possible:</p>
+        <ul>
+          <li><strong>Text selection:</strong> it only reads the exact text you've selected, and only at the moment you click "Send via Blink." It never scans, logs, or transmits anything else on the page.</li>
+          <li><strong>Encryption:</strong> identical to the website: your selected text is encrypted locally before anything is sent to blink.malto.icu's API.</li>
+          <li><strong>Clipboard:</strong> after a link is created, the extension writes that link to your clipboard. It never reads your existing clipboard contents.</li>
+          <li><strong>Permissions it requests, and why:</strong> <code>contextMenus</code> (adds the right-click item), <code>scripting</code> + <code>activeTab</code> (copies the created link into the tab after a right-click action), <code>notifications</code> (confirms a link was created), and host access to blink.malto.icu (to call the API directly without needing page-level CORS).</li>
+          <li><strong>No analytics, no remote config, no third-party code</strong> is bundled in the extension.</li>
+        </ul>
+
+        <h2 class="about-section-title">Third parties we rely on</h2>
+        <ul>
+          <li><strong>Resend</strong>, for sending one-time email codes (only when you use that optional feature).</li>
+          <li><strong>Lemon Squeezy</strong>, for processing Pro subscription payments and license validation.</li>
+          <li><strong>Google</strong>, only if you choose to sign in for Pro.</li>
+        </ul>
+        <p>None of these receive your secret's plaintext, and none are used for advertising or tracking.</p>
+
+        <h2 class="about-section-title">Open source</h2>
+        <p>Blink's full source, website and extension, is public on <a href="https://github.com/MALTOisHERE/onlyonce" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> under AGPL-3.0, so this policy can be verified against the actual code rather than taken on trust.</p>
+
+        <h2 class="about-section-title">Questions</h2>
+        <p>Open an issue on <a href="https://github.com/MALTOisHERE/onlyonce/issues" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> and we'll answer there.</p>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      Blink <span id="app-version"></span> &nbsp; &middot; &nbsp; Secrets never stored in plaintext &nbsp; &middot; &nbsp; <a href="/about" class="footer-link">About</a> &nbsp; &middot; &nbsp; <a href="/privacy" class="footer-link">Privacy</a> &nbsp; &middot; &nbsp; Made with &hearts; by <span class="footer-logo" aria-hidden="true"></span><a href="https://github.com/MALTOisHERE" target="_blank" rel="noopener noreferrer" class="footer-link">MALTO</a>
+    </footer>
+  </div>
+
+  <script src="/theme-toggle.js"></script>
+  <script src="/version.js"></script>
+  <script src="/register-sw.js"></script>
+</body>
+</html>

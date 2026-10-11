@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blink</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="header">
+    <span class="logo-blink-icon" role="img" aria-label="Blink"></span>
+    <span class="logo-text">Blink</span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="create" type="button">Create link</button>
+    <button class="tab" data-tab="password" type="button">Password</button>
+  </nav>
+
+  <section id="tab-create" class="panel active">
+    <label class="field-label" for="secret-input">Secret</label>
+    <textarea id="secret-input" placeholder="Paste or type a secret…" maxlength="10240" rows="4"></textarea>
+    <div class="row between byte-row">
+      <span id="byte-counter" class="hint">0.0 / 10 KB</span>
+    </div>
+
+    <label class="field-label" for="recipient-email">Recipient email (optional)</label>
+    <input type="email" id="recipient-email" placeholder="name@example.com" autocomplete="off" spellcheck="false">
+    <p class="hint email-hint">If set, the recipient must enter a code sent to this email to reveal the secret.</p>
+
+    <span class="field-label">Expires after</span>
+    <div class="pills" id="expiry-pills">
+      <label class="pill"><input type="radio" name="expiry" value="1"><span>1 hour</span></label>
+      <label class="pill"><input type="radio" name="expiry" value="6"><span>6 hours</span></label>
+      <label class="pill"><input type="radio" name="expiry" value="24"><span>24 hours</span></label>
+      <label class="pill"><input type="radio" name="expiry" value="48" checked><span>48 hours</span></label>
+    </div>
+
+    <button id="btn-create" class="btn-primary" type="button">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      Encrypt &amp; create link
+    </button>
+
+    <div id="email-confirm-box" class="confirm-box hidden">
+      <p class="confirm-text">The one-time code will be sent to <strong id="confirm-email-target"></strong>, and the recipient can't reveal the secret without it.</p>
+      <div class="row gap">
+        <button id="btn-confirm-send" class="btn-primary" type="button">Confirm &amp; send</button>
+        <button id="btn-cancel-send" class="btn-secondary" type="button">Cancel</button>
+      </div>
+    </div>
+
+    <p id="create-error" class="error hidden"></p>
+    <div id="result" class="result hidden">
+      <input id="link-output" readonly aria-label="Secure link">
+      <button id="btn-copy-link" class="icon-btn" type="button">Copy</button>
+    </div>
+  </section>
+
+  <section id="tab-password" class="panel">
+    <span class="field-label">Password</span>
+    <div class="gen-preview-wrap">
+      <input id="gen-preview" readonly aria-label="Generated password">
+      <button id="btn-copy-pwd" class="icon-btn" type="button">Copy</button>
+    </div>
+
+    <div class="slider-field">
+      <label for="length-slider">Length <span id="length-value">20</span></label>
+      <input id="length-slider" type="range" min="8" max="64" value="20">
+    </div>
+
+    <div class="checkboxes">
+      <label class="check-label">
+        <input type="checkbox" id="opt-upper" checked>
+        <span class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+        <span>A-Z</span>
+      </label>
+      <label class="check-label">
+        <input type="checkbox" id="opt-lower" checked>
+        <span class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+        <span>a-z</span>
+      </label>
+      <label class="check-label">
+        <input type="checkbox" id="opt-numbers" checked>
+        <span class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+        <span>0-9</span>
+      </label>
+      <label class="check-label">
+        <input type="checkbox" id="opt-symbols">
+        <span class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+        <span>symbols</span>
+      </label>
+    </div>
+
+    <div class="strength-wrap">
+      <div class="strength-bar"><div id="strength-fill" class="strength-fill"></div></div>
+      <span id="strength-label" class="strength-label"></span>
+    </div>
+
+    <button id="btn-regen" class="btn-secondary" type="button">Regenerate</button>
+    <button id="btn-use-as-secret" class="btn-link" type="button">Use as secret <svg class="arrow-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
+  </section>
+
+  <p class="upsell-note">Need file sharing or Pro features? <a href="https://blink.malto.icu" target="_blank" rel="noopener">Use the full website <svg class="arrow-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a></p>
+
+  <footer class="footer">
+    Blink <span id="ext-version"></span> &middot; <a href="https://blink.malto.icu" target="_blank" rel="noopener">blink.malto.icu</a>
+  </footer>
+
+  <script src="config.js"></script>
+  <script src="crypto.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
