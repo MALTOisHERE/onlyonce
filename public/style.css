@@ -240,6 +240,7 @@ body {
 .hero-bottom { gap: 16px; }
 .hero-badge {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 7px;
   font-size: .75rem;
@@ -275,10 +276,8 @@ body {
 .hero-sub {
   color: var(--text-muted);
   font-size: 1rem;
-  max-width: 540px;
   margin: 0;
   line-height: 1.6;
-  text-wrap: balance;
 }
 /* ── Main ── */
 .main {
@@ -821,6 +820,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 /* ── About link (homepage) ── */
 .about-link {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   gap: 6px;
   font-size: .86rem;
@@ -1953,6 +1953,38 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .pro-owner-badge svg { flex-shrink: 0; }
 
 /* ── Pricing ── */
+.extension-section {
+  margin: 48px auto 0;
+  max-width: 760px;
+  text-align: center;
+  animation: fadeUp .4s ease both;
+}
+.extension-badges {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ext-badge {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ext-badge:disabled { opacity: .55; cursor: not-allowed; }
+.ext-badge:disabled:hover { border-color: var(--border); color: var(--text-muted); background: var(--surface-2); }
+.soon-badge {
+  display: inline-block;
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  color: var(--text-dim);
+}
+.ext-badge svg { flex-shrink: 0; }
+
 .pricing {
   margin: 48px auto 0;
   max-width: 760px;
