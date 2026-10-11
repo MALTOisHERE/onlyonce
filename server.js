@@ -195,7 +195,10 @@ const SESSION_MAX_AGE    = 7 * 24 * 3_600_000; // 7 days
 const OAUTH_STATE_COOKIE = 'blink_oauth_state';
 
 function parseCookies(header) {
-  const out = {};
+  // Keys come straight from the raw Cookie header (attacker-controlled).
+  // A null-prototype object means a key like "__proto__" or "constructor"
+  // just becomes an own property, never a prototype-pollution vector.
+  const out = Object.create(null);
   if (!header) return out;
   for (const pair of header.split(';')) {
     const idx = pair.indexOf('=');
@@ -977,13 +980,13 @@ app.get('/api/stats', (req, res) => {
 });
 
 // ── About page ───────────────────────────────────────────────────────────────
-app.get('/about', (req, res) => {
+app.get('/about', readLimiter.middleware(), (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'about.html'));
 });
 
 // ── View page ────────────────────────────────────────────────────────────────
-app.get('/view/:id', (req, res) => {
+app.get('/view/:id', readLimiter.middleware(), (req, res) => {
   if (!UUID_RE.test(req.params.id)) return res.redirect('/');
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'view.html'));

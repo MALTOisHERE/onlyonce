@@ -26,6 +26,7 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 - **Configurable expiry** - choose 1, 6, 24, or 48 hours; unviewed secrets are automatically purged at expiry
 - **Email verification (optional)** - lock a link to a specific recipient; they must enter a 6-digit code sent to their inbox to reveal the secret. Wrong code 5 times → secret self-destructs
 - **Password generator** - configurable length, charset, with strength meter
+- **Light/dark theme** - defaults to light, remembers your choice
 - **Rate limited** - 10 creates / 30 reads per minute per IP; 3 email OTPs per hour per IP
 - **No database** - in-memory store, ephemeral by design
 - **Security headers** - CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy
@@ -93,6 +94,12 @@ The container binds to `127.0.0.1:3001` - put nginx in front.
 
 Copy `.env.example` to `.env` for local overrides.
 
+### CI/CD
+
+- **`ci.yml`** — runs automatically on every push/PR to `main`: install, lint, test, `npm audit --audit-level=high`.
+- **`release.yml`** — manual only. Actions tab → "Release" → "Run workflow" → pick `patch`/`minor`/`major`. Runs lint+test first, then bumps `package.json`'s version via `npm version`, commits, tags (`vX.Y.Z`), pushes, and publishes a GitHub Release with auto-generated notes.
+- **`deploy.yml`** — manual only, intentionally decoupled from releases (deploying and cutting a version are separate decisions). SSHes into the VPS and runs `git pull && docker compose up -d --build`. Needs `VPS_HOST`, `VPS_USER`, and `VPS_SSH_KEY` set as repo secrets (Settings → Secrets and variables → Actions).
+
 ### nginx config
 
 ```nginx
@@ -129,23 +136,32 @@ server {
 
 ```
 blink/
-├── server.js          # Express server, rate limiter, secret store, email OTP
+├── server.js            # Express server, rate limiter, secret store, email OTP
 ├── public/
-│   ├── index.html     # Create page
-│   ├── view.html      # View-once page
-│   ├── about.html      # How it works & FAQ
-│   ├── app.js          # Encrypt, key split, generate password, create link
-│   ├── view.js         # Reveal flow, OTP flow
-│   ├── about.js        # FAQ accordion
-│   ├── style.css        # Light/dark theme UI
-│   ├── theme-init.js    # Applies saved theme before first paint
-│   ├── theme-toggle.js  # Light/dark toggle button
-│   ├── images/           # Logos & PWA icons
-│   └── fonts/            # Self-hosted woff2 files
+│   ├── index.html       # Create page
+│   ├── view.html        # View-once page
+│   ├── about.html       # How it works & FAQ
+│   ├── app.js            # Encrypt, key split, generate password, create link
+│   ├── view.js           # Reveal flow, OTP flow
+│   ├── about.js          # FAQ accordion
+│   ├── style.css          # Light/dark theme UI
+│   ├── theme-init.js      # Applies saved theme before first paint
+│   ├── theme-toggle.js    # Light/dark toggle button
+│   ├── version.js         # Shows the running app version in the footer
+│   ├── manifest.json      # PWA manifest
+│   ├── sw.js / register-sw.js  # Offline-capable service worker
+│   └── fonts/              # Self-hosted woff2 files
+├── .github/workflows/
+│   ├── ci.yml            # Lint, test, audit on every push/PR to main
+│   ├── codeql.yml        # Static security analysis
+│   ├── release.yml       # Manual: bump version, tag, publish a GitHub Release
+│   └── deploy.yml        # Manual: SSH deploy to the VPS (separate from release)
 ├── Dockerfile
 ├── docker-compose.yml
 └── .env.example
 ```
+
+Logos and icons (`blink-logo.png`, `logo.png`, `logo-192.png`, `logo-512.png`) are not in this repo — the hosted instance at blink.malto.icu serves them from `https://assets.malto.icu/blink/`. If you self-host, either swap those URLs in `public/*.html`, `public/style.css`, and `public/manifest.json` for your own, or point them at a copy of the same files on any host that sends `Access-Control-Allow-Origin` (needed for the CSS-masked logos and the manifest icons specifically).
 
 ## License
 
