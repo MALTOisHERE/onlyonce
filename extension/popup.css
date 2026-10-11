@@ -43,23 +43,21 @@
   --radius-sm:   7px;
   --transition:  .18s ease;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg:          #0a0a0a;
-    --surface:     #121212;
-    --surface-2:   #171717;
-    --surface-3:   #1f1f1f;
-    --border:      rgba(255,255,255,0.10);
-    --border-hi:   rgba(255,255,255,0.18);
-    --green:       #61cf5a;
-    --green-dim:   rgba(97,207,90,.08);
-    --text:        #EEF2FF;
-    --text-muted:  #8B9AC2;
-    --text-dim:    #5A6690;
-    --danger:      #ef4444;
-    --danger-bg:   rgba(239,68,68,.08);
-    --danger-border: rgba(239,68,68,.2);
-  }
+:root[data-theme="dark"] {
+  --bg:          #0a0a0a;
+  --surface:     #121212;
+  --surface-2:   #171717;
+  --surface-3:   #1f1f1f;
+  --border:      rgba(255,255,255,0.10);
+  --border-hi:   rgba(255,255,255,0.18);
+  --green:       #61cf5a;
+  --green-dim:   rgba(97,207,90,.08);
+  --text:        #EEF2FF;
+  --text-muted:  #8B9AC2;
+  --text-dim:    #5A6690;
+  --danger:      #ef4444;
+  --danger-bg:   rgba(239,68,68,.08);
+  --danger-border: rgba(239,68,68,.2);
 }
 
 * { box-sizing: border-box; }
@@ -84,6 +82,22 @@ body {
   margin-bottom: 14px;
   border-bottom: 1px solid var(--border);
 }
+.header-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color var(--transition), background var(--transition);
+}
+.header-icon-btn:hover { color: var(--text); background: var(--surface-2); }
 .logo-blink-icon {
   display: inline-block;
   height: 24px;
@@ -174,7 +188,7 @@ textarea:focus, #gen-preview:focus, #link-output:focus {
 .pill:hover { border-color: var(--border-hi); color: var(--text); }
 .pill input:checked ~ span { color: var(--text); }
 .pill:has(input:checked) { border-color: var(--green); background: var(--green-dim); }
-.pill:has(input:checked) span { color: var(--text); font-weight: 600; }
+.pill:has(input:checked) span { font-weight: 600; }
 
 /* ── Primary / secondary buttons ── */
 .btn-primary {
@@ -185,7 +199,7 @@ textarea:focus, #gen-preview:focus, #link-output:focus {
   gap: 8px;
   padding: 11px 16px;
   background: linear-gradient(135deg, #61cf5a 0%, #4db849 100%);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: #06230a;
   font-family: inherit;
@@ -198,6 +212,13 @@ textarea:focus, #gen-preview:focus, #link-output:focus {
 .btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
 .btn-primary:disabled { opacity: .5; cursor: default; transform: none; filter: none; }
+.btn-primary.saved {
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+  box-shadow: none;
+}
+.btn-primary.saved:hover { filter: none; transform: none; }
 
 .btn-secondary {
   width: 100%;

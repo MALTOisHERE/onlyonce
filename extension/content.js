@@ -14,28 +14,44 @@
   // cooldown finishes. Guards against spamming the server's create-rate
   // limiter (10/min/IP) by rapid-fire clicking the bubble.
   let locked = false;
+  let bubbleEnabled = true;
 
+  blinkGetSettings().then((s) => { bubbleEnabled = s.bubbleEnabled; });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'sync' || !changes.bubbleEnabled) return;
+    bubbleEnabled = changes.bubbleEnabled.newValue;
+    if (!bubbleEnabled) hideButton();
+  });
+
+  // Returns true if the host/button exist and are ready to use. Can fail
+  // (and return false) if the extension was reloaded/updated while this
+  // content script is still running in an old tab: chrome.runtime.getURL
+  // then throws "Extension context invalidated", which used to abort this
+  // function midway, leaving `host` set (blocking retries) but `btn` never
+  // created, crashing every later showButton() call on a null `btn`.
   function ensureHost() {
-    if (host) return;
+    if (btn) return true;
+    if (host) return false;
 
-    host = document.createElement('div');
-    host.style.all = 'initial';
-    host.style.position = 'fixed';
-    host.style.top = '0';
-    host.style.left = '0';
-    host.style.zIndex = '2147483647';
-    document.documentElement.appendChild(host);
-    shadow = host.attachShadow({ mode: 'closed' });
+    try {
+      host = document.createElement('div');
+      host.style.all = 'initial';
+      host.style.position = 'fixed';
+      host.style.top = '0';
+      host.style.left = '0';
+      host.style.zIndex = '2147483647';
+      document.documentElement.appendChild(host);
+      shadow = host.attachShadow({ mode: 'closed' });
 
-    // Bundled locally (extension/icons/logo.png) and served from the
-    // extension's own chrome-extension:// origin, declared in manifest.json's
-    // web_accessible_resources, so this always loads regardless of the host
-    // page's own CSP (a remote cross-origin asset would be silently blocked
-    // by any page with a strict img-src/style-src policy).
-    const iconUrl = chrome.runtime.getURL('icons/logo.png');
+      // Bundled locally (extension/icons/logo.png) and served from the
+      // extension's own chrome-extension:// origin, declared in manifest.json's
+      // web_accessible_resources, so this always loads regardless of the host
+      // page's own CSP (a remote cross-origin asset would be silently blocked
+      // by any page with a strict img-src/style-src policy).
+      const iconUrl = chrome.runtime.getURL('icons/logo.png');
 
-    const style = document.createElement('style');
-    style.textContent = `
+      const style = document.createElement('style');
+      style.textContent = `
       .btn {
         position: fixed;
         display: flex;
@@ -90,19 +106,27 @@
       .btn.busy .label, .btn.done .label, .btn.failed .label { display: inline; }
       @keyframes blink-spin { to { transform: rotate(360deg); } }
     `;
-    shadow.appendChild(style);
+      shadow.appendChild(style);
 
-    btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn';
-    btn.title = 'Send via Blink';
-    btn.style.display = 'none';
-    btn.innerHTML = '<span class="icon"></span><span class="spinner"></span><span class="label"></span>';
-    shadow.appendChild(btn);
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn';
+      btn.title = 'Send via Blink';
+      btn.style.display = 'none';
+      btn.innerHTML = '<span class="icon"></span><span class="spinner"></span><span class="label"></span>';
+      shadow.appendChild(btn);
 
-    // Prevent the mousedown from collapsing the live selection before click fires.
-    btn.addEventListener('mousedown', (e) => e.preventDefault());
-    btn.addEventListener('click', onButtonClick);
+      // Prevent the mousedown from collapsing the live selection before click fires.
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', onButtonClick);
+      return true;
+    } catch (err) {
+      console.error('[Blink extension] could not set up the selection bubble (the page may need a refresh after the extension updated):', err);
+      host = null;
+      shadow = null;
+      btn = null;
+      return false;
+    }
   }
 
   function setLabel(text) {
@@ -110,7 +134,7 @@
   }
 
   function showButton(rect) {
-    ensureHost();
+    if (!ensureHost()) return;
     btn.classList.remove('busy', 'done', 'failed');
     btn.title = 'Send via Blink';
     btn.style.display = 'flex';
@@ -145,6 +169,7 @@
   }
 
   function onSelectionChange() {
+    if (!bubbleEnabled) return;
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : '';
     if (!text || text.length > 10_000 || sel.rangeCount === 0) {

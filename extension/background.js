@@ -6,12 +6,30 @@ if (typeof importScripts === 'function') {
   importScripts('config.js', 'crypto.js');
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: 'blink-send-selection',
-    title: 'Send via Blink',
-    contexts: ['selection'],
+const MENU_ID = 'blink-send-selection';
+
+async function syncContextMenu() {
+  const { contextMenuEnabled } = await blinkGetSettings();
+  chrome.contextMenus.remove(MENU_ID, () => {
+    // chrome.runtime.lastError is expected here when the item didn't exist
+    // yet (e.g. first install); swallow it, there's nothing to report.
+    void chrome.runtime.lastError;
+    if (contextMenuEnabled) {
+      chrome.contextMenus.create({
+        id: MENU_ID,
+        title: 'Send via Blink',
+        contexts: ['selection'],
+      });
+    }
   });
+}
+
+chrome.runtime.onInstalled.addListener(syncContextMenu);
+
+// options.js flips contextMenuEnabled; apply it immediately without needing
+// a browser restart.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.contextMenuEnabled) syncContextMenu();
 });
 
 function notify(title, message) {
@@ -44,7 +62,8 @@ async function copyToTab(tabId, text) {
 async function createLinkFromText(text) {
   const trimmed = (text || '').trim();
   if (!trimmed) throw new Error('No text selected.');
-  return blinkCreateLink(trimmed);
+  const { defaultExpiryHours } = await blinkGetSettings();
+  return blinkCreateLink(trimmed, defaultExpiryHours);
 }
 
 // Declared async so the listener itself returns the pending promise to the

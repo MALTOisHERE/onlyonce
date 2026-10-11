@@ -24,11 +24,15 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "js": ["config.js", "content.js"],
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["contextMenus", "scripting", "activeTab", "notifications"],
+  "permissions": ["contextMenus", "scripting", "activeTab", "notifications", "storage"],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "host_permissions": ["https://blink.malto.icu/*"],
   "web_accessible_resources": [
     {

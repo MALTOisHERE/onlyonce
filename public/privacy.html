@@ -47,13 +47,25 @@
         <p class="about-hero-desc">This covers both blink.malto.icu and the Blink browser extension. The short version: your secret is encrypted on your own device before anything leaves it, and the server only ever sees ciphertext.</p>
       </section>
 
-      <section class="about-section privacy-section">
+      <nav class="privacy-toc" aria-label="Sections">
         <p class="privacy-updated">Last updated: October 2026</p>
+        <ol>
+          <li><a href="#never-see">What we never see</a></li>
+          <li><a href="#processed">What is processed, and why</a></li>
+          <li><a href="#extension">The browser extension, specifically</a></li>
+          <li><a href="#third-parties">Third parties we rely on</a></li>
+          <li><a href="#open-source">Open source</a></li>
+          <li><a href="#questions">Questions</a></li>
+        </ol>
+      </nav>
 
-        <h2 class="about-section-title">What we never see</h2>
+      <section class="about-section privacy-section" id="never-see">
+        <h2 class="about-section-title">1. What we never see</h2>
         <p>Your secret's plaintext never reaches our server, in any form, from either the website or the extension. Encryption happens entirely in your browser (or the extension's own sandboxed context) using the Web Crypto API before any network request is made. The server only ever stores ciphertext and a masked half of the encryption key, both of which it deletes the moment the secret is viewed or expires.</p>
+      </section>
 
-        <h2 class="about-section-title">What is processed, and why</h2>
+      <section class="about-section privacy-section" id="processed">
+        <h2 class="about-section-title">2. What is processed, and why</h2>
         <ul>
           <li><strong>Ciphertext, IV, and masked key half:</strong> held in server memory only (never written to disk), for as long as the secret is unviewed and unexpired. Deleted immediately on first view, or automatically purged at your chosen expiry.</li>
           <li><strong>Recipient email (optional):</strong> if you use the "lock to a recipient" feature, that address is used once to send a one-time verification code via our email provider, Resend. It is not kept beyond the secret's lifetime and is never added to a mailing list.</li>
@@ -61,8 +73,10 @@
           <li><strong>Payment details (optional, Pro):</strong> handled entirely by Lemon Squeezy. Blink's own server never receives your card number or billing details.</li>
           <li><strong>IP address:</strong> used transiently for rate limiting (to stop abuse), not logged or stored.</li>
         </ul>
+      </section>
 
-        <h2 class="about-section-title">The browser extension, specifically</h2>
+      <section class="about-section privacy-section" id="extension">
+        <h2 class="about-section-title">3. The browser extension, specifically</h2>
         <p>The extension (popup, right-click menu, and floating selection button) is built to need as little access as possible:</p>
         <ul>
           <li><strong>Text selection:</strong> it only reads the exact text you've selected, and only at the moment you click "Send via Blink." It never scans, logs, or transmits anything else on the page.</li>
@@ -71,19 +85,25 @@
           <li><strong>Permissions it requests, and why:</strong> <code>contextMenus</code> (adds the right-click item), <code>scripting</code> + <code>activeTab</code> (copies the created link into the tab after a right-click action), <code>notifications</code> (confirms a link was created), and host access to blink.malto.icu (to call the API directly without needing page-level CORS).</li>
           <li><strong>No analytics, no remote config, no third-party code</strong> is bundled in the extension.</li>
         </ul>
+      </section>
 
-        <h2 class="about-section-title">Third parties we rely on</h2>
+      <section class="about-section privacy-section" id="third-parties">
+        <h2 class="about-section-title">4. Third parties we rely on</h2>
         <ul>
           <li><strong>Resend</strong>, for sending one-time email codes (only when you use that optional feature).</li>
           <li><strong>Lemon Squeezy</strong>, for processing Pro subscription payments and license validation.</li>
           <li><strong>Google</strong>, only if you choose to sign in for Pro.</li>
         </ul>
         <p>None of these receive your secret's plaintext, and none are used for advertising or tracking.</p>
+      </section>
 
-        <h2 class="about-section-title">Open source</h2>
+      <section class="about-section privacy-section" id="open-source">
+        <h2 class="about-section-title">5. Open source</h2>
         <p>Blink's full source, website and extension, is public on <a href="https://github.com/MALTOisHERE/onlyonce" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> under AGPL-3.0, so this policy can be verified against the actual code rather than taken on trust.</p>
+      </section>
 
-        <h2 class="about-section-title">Questions</h2>
+      <section class="about-section privacy-section" id="questions">
+        <h2 class="about-section-title">6. Questions</h2>
         <p>Open an issue on <a href="https://github.com/MALTOisHERE/onlyonce/issues" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> and we'll answer there.</p>
       </section>
 

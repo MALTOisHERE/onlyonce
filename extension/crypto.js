@@ -36,12 +36,12 @@ async function blinkEncryptSecret(text) {
   };
 }
 
-async function blinkCreateLink(text) {
+async function blinkCreateLink(text, ttlHours = BLINK_DEFAULT_TTL_HOURS) {
   const { ciphertext, iv, k1, k2 } = await blinkEncryptSecret(text);
   const resp = await fetch(`${BLINK_API_BASE}/api/secret`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ ciphertext, iv, k2, expiresIn: BLINK_DEFAULT_TTL_HOURS }),
+    body:    JSON.stringify({ ciphertext, iv, k2, expiresIn: ttlHours }),
   });
   if (!resp.ok) {
     if (resp.status === 429) throw new Error('Too many requests. Please wait a moment and try again.');

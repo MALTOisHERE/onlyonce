@@ -2,6 +2,19 @@
   // ── Footer version ──────────────────────────────────────────────────────
   document.getElementById('ext-version').textContent = `v${chrome.runtime.getManifest().version}`;
 
+  // ── Settings ─────────────────────────────────────────────────────────────
+  document.getElementById('btn-settings').addEventListener('click', () => {
+    chrome.runtime.openOptionsPage();
+  });
+
+  // ── Theme toggle ─────────────────────────────────────────────────────────
+  document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+    const root = document.documentElement;
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('blink-ext-theme', next); } catch {}
+  });
+
   // ── Tabs ─────────────────────────────────────────────────────────────────
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {

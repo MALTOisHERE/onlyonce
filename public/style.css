@@ -896,7 +896,17 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .privacy-section li { font-size: .9rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 8px; }
 .privacy-section li strong { color: var(--text); }
 .privacy-section h3 { font-size: .92rem; font-weight: 600; color: var(--text); margin: 20px 0 10px; }
-.privacy-updated { font-size: .78rem; color: var(--text-dim); margin-bottom: 28px; }
+.privacy-updated { font-size: .78rem; color: var(--text-dim); margin-bottom: 14px; }
+.privacy-toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-card);
+}
+.privacy-toc ol { list-style: decimal; padding-left: 20px; display: grid; gap: 8px; }
+.privacy-toc a { font-size: .88rem; font-weight: 500; color: var(--text); text-decoration: none; }
+.privacy-toc a:hover { color: var(--green); text-decoration: underline; }
 
 /* ── Phase labels + divider ── */
 .about-phase-label {
@@ -1185,9 +1195,10 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .expiry-pill:hover span { border-color: var(--border-hi); color: var(--text); }
 .expiry-pill input:checked + span {
-  border-color: var(--text);
+  border-color: var(--green);
   color: var(--text);
-  background: var(--surface);
+  font-weight: 600;
+  background: var(--green-dim);
 }
 
 /* ── Secret: create another link ── */
@@ -2086,12 +2097,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .price-card-cta {
   display: block;
   width: 100%;
+  box-sizing: border-box;
   text-align: center;
   padding: 11px;
   border-radius: var(--radius-sm);
   font-size: .88rem;
   font-weight: 600;
   font-family: inherit;
+  line-height: 1.3;
 }
 .price-card-cta-current {
   border: 1px solid var(--border);
