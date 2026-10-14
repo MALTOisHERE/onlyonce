@@ -149,6 +149,64 @@ body {
 /* ── Layout ── */
 .app { display: flex; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
 
+/* ── Extension announcement banner ── */
+@keyframes bannerDrop {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ext-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 44px 10px 20px;
+  position: relative;
+  background: linear-gradient(120deg, #4db849 0%, #61cf5a 35%, #c9ffc4 50%, #61cf5a 65%, #4db849 100%);
+  background-size: 200% auto;
+  color: #06230a;
+  font-size: .85rem;
+  text-align: center;
+  flex-wrap: wrap;
+  /* Entrance (once) and shine (looping) run together; the entrance uses a
+     transform, not height/display, so the header below never jumps: the
+     banner's box already occupies its final layout space from frame one,
+     it just visually drops into it from above. */
+  animation: bannerDrop .6s cubic-bezier(.16,1,.3,1) both,
+             shimmer 5s linear 1s infinite;
+}
+.ext-banner.hidden { display: none; }
+.ext-banner-inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.ext-banner-icon { flex-shrink: 0; }
+.ext-banner-text { font-weight: 500; }
+.ext-banner-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  color: #06230a;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+.ext-banner-cta svg { flex-shrink: 0; }
+.ext-banner-cta:hover { opacity: .75; }
+.ext-banner-close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #06230a;
+  opacity: .6;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+}
+.ext-banner-close:hover { opacity: 1; }
+@media (max-width: 640px) {
+  .ext-banner { padding: 10px 40px 10px 14px; font-size: .78rem; }
+}
+
 /* ── Header (slim top bar) ── */
 .header {
   display: flex;
