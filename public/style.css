@@ -1981,9 +1981,26 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  text-decoration: none;
 }
 .ext-badge:disabled { opacity: .55; cursor: not-allowed; }
 .ext-badge:disabled:hover { border-color: var(--border); color: var(--text-muted); background: var(--surface-2); }
+.ext-badge-chrome {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--text);
+}
+.ext-badge-bg-logo {
+  position: absolute;
+  right: -22px;
+  bottom: -28px;
+  opacity: .18;
+  pointer-events: none;
+  z-index: 0;
+}
+.ext-badge-chrome:hover .ext-badge-bg-logo { opacity: .28; }
+.ext-badge-chrome > :not(.ext-badge-bg-logo) { position: relative; z-index: 1; }
 .soon-badge {
   display: inline-block;
   font-size: .58rem;
@@ -1993,6 +2010,16 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   border-radius: 5px;
   background: var(--surface-3);
   color: var(--text-dim);
+}
+.new-badge {
+  display: inline-block;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #61cf5a, #8df589);
+  color: #000;
 }
 .ext-badge svg { flex-shrink: 0; }
 
