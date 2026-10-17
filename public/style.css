@@ -1627,6 +1627,33 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 }
 .otp-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
 .otp-error { font-size: .82rem; color: var(--danger); margin-bottom: 12px; }
+.otp-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.otp-box {
+  width: 44px;
+  height: 52px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, 'Courier New', monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.otp-box:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
+.otp-box.otp-box-filled { border-color: var(--border-hi); }
+@media (max-width: 420px) {
+  .otp-boxes { gap: 6px; }
+  .otp-box { width: 15vw; max-width: 44px; height: 48px; font-size: 1.2rem; }
+}
 .pass-input {
   max-width: 300px;
   font-size: 1rem;

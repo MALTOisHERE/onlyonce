@@ -548,7 +548,7 @@ function emailHeader(eyebrow) {
   return `
     <tr><td style="padding:24px 28px 18px;">
       <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
-        <td style="vertical-align:middle;width:36px;"><img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" width="32" style="display:block;height:32px;width:32px;"></td>
+        <td style="vertical-align:middle;width:47px;"><img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" width="47" height="32" style="display:block;height:32px;width:47px;"></td>
         <td style="vertical-align:middle;padding-left:10px;white-space:nowrap;">
           <span style="color:#2f9e2a;font-size:18px;font-weight:700;">Blink</span>
           <span style="display:inline-block;margin-left:8px;border:1px solid rgba(0,0,0,0.10);border-radius:999px;padding:3px 9px;font-size:10px;color:#9aa0aa;vertical-align:middle;">by MALTO</span>
