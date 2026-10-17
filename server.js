@@ -539,29 +539,66 @@ function viewsSetByLine(viewsAllowed) {
     : 'The sender set this secret to be viewed only once.';
 }
 
+// Shared chrome for both transactional emails: logo + wordmark, a green
+// eyebrow badge naming the email's type, and a fading green divider —
+// mirrors the site's own light-theme tokens (style.css) and badge pattern
+// (e.g. .about-hero-badge), since CSS mask-recoloring isn't available in
+// email clients and the logo PNG itself is baked at the dark-theme green.
+function emailHeader(eyebrow) {
+  return `
+    <tr><td style="padding:24px 28px 18px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+        <td style="vertical-align:middle;width:36px;"><img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" width="32" style="display:block;height:32px;width:32px;"></td>
+        <td style="vertical-align:middle;padding-left:10px;white-space:nowrap;">
+          <span style="color:#2f9e2a;font-size:18px;font-weight:700;">Blink</span>
+          <span style="display:inline-block;margin-left:8px;border:1px solid rgba(0,0,0,0.10);border-radius:999px;padding:3px 9px;font-size:10px;color:#9aa0aa;vertical-align:middle;">by MALTO</span>
+        </td>
+        <td style="vertical-align:middle;text-align:right;">
+          <span style="display:inline-block;border:1px solid rgba(97,207,90,.2);background:rgba(97,207,90,.10);border-radius:999px;padding:4px 12px;font-size:10px;font-weight:600;letter-spacing:0.08em;color:#2f9e2a;text-transform:uppercase;">${eyebrow}</span>
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:0 28px;"><div style="height:1px;background:linear-gradient(90deg, rgba(255,255,255,0), rgba(97,207,90,.55), rgba(255,255,255,0));"></div></td></tr>
+  `;
+}
+
+function emailFooter() {
+  return `
+    <tr><td style="padding:9px 28px;border-top:1px solid rgba(0,0,0,0.10);text-align:center;">
+      <p style="margin:0;font-size:10px;line-height:1.3;color:#9aa0aa;">Blink v${APP_VERSION} &middot; <a href="https://blink.malto.icu" style="color:#9aa0aa;text-decoration:none;">blink.malto.icu</a></p>
+    </td></tr>
+  `;
+}
+
+// Hidden preheader text: without it, clients fall back to showing boilerplate
+// (e.g. "View in browser") as the inbox preview snippet instead of context.
+function preheader(text) {
+  const padding = '&#8203;'.repeat(20);
+  return `<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${text} ${padding}</div>`;
+}
+
 async function sendOTPEmail(to, otp, id, viewsAllowed = 1, expiresInHours = 48) {
   const { error } = await resendClient.emails.send({
     from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
     to,
-    subject: 'Your Blink verification code',
+    subject: '[Blink - Verification] Your Blink verification code',
     html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px;text-align:center">
-        <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
-          <tr>
-            <td style="vertical-align:middle;padding-right:10px">
-              <img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
-            </td>
-            <td style="vertical-align:middle;text-align:left">
-              <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
-              <div style="color:#7A8599;font-size:11px">by MALTO</div>
-            </td>
-          </tr>
-        </table>
-        <p style="margin:0 0 20px;font-size:15px">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
-        <div style="font-size:40px;font-weight:700;letter-spacing:10px;text-align:center;padding:28px 24px;background:#131820;border-radius:10px;color:#61cf5a;font-family:monospace">${otp}</div>
-        <p style="margin:16px 0 0;font-size:12px;color:#7A8599">${viewsSetByLine(viewsAllowed)} It expires in ${formatExpiry(expiresInHours)} if not opened.</p>
-        <p style="margin:12px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} (if you have more than one Blink link open, check this matches the end of the one you're viewing)</p>
-        <p style="margin:12px 0 0;font-size:12px;color:#4A5468">This code can only be used once. If you were not expecting this, ignore this email.</p>
+      <div style="margin:0;padding:0;background:#f5f5f5;">
+        ${preheader(`Your Blink code: ${otp}. Someone shared a secret with you.`)}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;"><tr><td align="center" style="padding:36px 16px;">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid rgba(0,0,0,0.10);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            ${emailHeader('Verification')}
+            <tr><td style="padding:26px 28px 20px;text-align:center;">
+              <p style="margin:0 0 20px;font-size:15px;color:#111111;line-height:1.5;">Someone shared a secret with you. Enter this code on the Blink page to reveal it:</p>
+              <div style="background:#f0f0f0;border:1px solid rgba(0,0,0,0.10);border-top:2px solid rgba(97,207,90,.5);border-radius:10px;padding:24px 20px 18px;">
+                <span style="font-family:ui-monospace,'SF Mono',Consolas,'Courier New',monospace;font-size:38px;font-weight:700;letter-spacing:9px;color:#2f9e2a;">${otp}</span>
+                <div style="margin-top:10px;font-size:11px;color:#68707c;">${viewsSetByLine(viewsAllowed)} Expires in ${formatExpiry(expiresInHours)}.</div>
+              </div>
+              <p style="margin:16px 0 0;font-size:11px;color:#b5b9bf;line-height:1.6;">Link ...${idFragment(id)} &nbsp;&middot;&nbsp; works once &nbsp;&middot;&nbsp; didn't request it? ignore this email.</p>
+            </td></tr>
+            ${emailFooter()}
+          </table>
+        </td></tr></table>
       </div>
     `,
   });
@@ -572,26 +609,31 @@ async function sendViewNotification(to, viewsLeft, id) {
   const remaining = viewsLeft > 0
     ? `It can be viewed ${viewsLeft} more time${viewsLeft === 1 ? '' : 's'} before it is destroyed.`
     : 'It has now been permanently deleted from the server.';
+  const pill = viewsLeft > 0
+    ? `<span style="display:inline-block;background:rgba(97,207,90,.10);border:1px solid rgba(97,207,90,.2);border-radius:999px;padding:7px 16px;font-size:12px;font-weight:600;color:#2f9e2a;">&#9679;&nbsp; ${viewsLeft} view${viewsLeft === 1 ? '' : 's'} left</span>`
+    : `<span style="display:inline-block;background:#f0f0f0;border:1px solid rgba(0,0,0,.10);border-radius:999px;padding:7px 16px;font-size:12px;font-weight:600;color:#68707c;">&#9679;&nbsp; Deleted</span>`;
+  const previewText = viewsLeft > 0
+    ? 'A secret you shared was just viewed.'
+    : 'A secret you shared was viewed and deleted.';
   const { error } = await resendClient.emails.send({
     from:    process.env.EMAIL_FROM || 'Blink <noreply@malto.icu>',
     to,
-    subject: 'Your Blink secret was viewed',
+    subject: '[Blink - Activity] Your Blink secret was viewed',
     html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0B0E14;color:#E8EDF5;border-radius:12px;text-align:center">
-        <table role="presentation" style="margin:0 auto 28px;border-collapse:collapse">
-          <tr>
-            <td style="vertical-align:middle;padding-right:10px">
-              <img src="https://assets.malto.icu/blink/blink-logo.png" alt="Blink" style="height:44px;width:auto;display:block">
-            </td>
-            <td style="vertical-align:middle;text-align:left">
-              <div style="color:#61cf5a;font-size:22px;font-weight:700;line-height:1.1">Blink</div>
-              <div style="color:#7A8599;font-size:11px">by MALTO</div>
-            </td>
-          </tr>
-        </table>
-        <p style="margin:0 0 12px;font-size:15px">A secret you shared on Blink was just viewed.</p>
-        <p style="margin:0;font-size:13px;color:#7A8599">${remaining}</p>
-        <p style="margin:16px 0 0;font-size:11px;color:#4A5468;font-family:monospace">Link ID: ...${idFragment(id)} (if you have multiple secrets out, this is which one)</p>
+      <div style="margin:0;padding:0;background:#f5f5f5;">
+        ${preheader(previewText)}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;"><tr><td align="center" style="padding:36px 16px;">
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border:1px solid rgba(0,0,0,0.10);border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            ${emailHeader('Activity')}
+            <tr><td style="padding:26px 28px 20px;text-align:center;">
+              <p style="margin:0 0 16px;font-size:15px;color:#111111;line-height:1.5;">A secret you shared on Blink was just viewed.</p>
+              <div style="margin:0 0 12px;">${pill}</div>
+              <p style="margin:0 0 16px;font-size:12px;color:#68707c;line-height:1.5;">${remaining}</p>
+              <p style="margin:0;font-size:11px;color:#b5b9bf;line-height:1.6;">Link ...${idFragment(id)}</p>
+            </td></tr>
+            ${emailFooter()}
+          </table>
+        </td></tr></table>
       </div>
     `,
   });
