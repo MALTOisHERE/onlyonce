@@ -26,10 +26,24 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 - **Configurable expiry** - choose 1, 6, 24, or 48 hours; unviewed secrets are automatically purged at expiry
 - **Email verification (optional)** - lock a link to a specific recipient; they must enter a 6-digit code sent to their inbox to reveal the secret. Wrong code 5 times → secret self-destructs
 - **Password generator** - configurable length, charset, with strength meter
+- **Browser extension** - create a link from the popup, the right-click menu, or a floating button on any text selection, without opening the site (see below)
 - **Light/dark theme** - defaults to light, remembers your choice
 - **Rate limited** - 10 creates / 30 reads per minute per IP; 3 email OTPs per hour per IP
 - **No database** - in-memory store, ephemeral by design
 - **Security headers** - CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy
+
+## Browser extension
+
+**[Get it on the Chrome Web Store](https://chromewebstore.google.com/detail/kllkcgnchmiaopmnaokioeajmdmfccgi)** - Firefox and Edge are planned (manifest already carries a `browser_specific_settings.gecko` id for Firefox).
+
+Same encryption model as the website - the secret is encrypted locally before anything leaves the browser - just reachable without a tab switch:
+
+- **Popup** - create a text or password-generator link from the toolbar icon
+- **Right-click menu** - select text on any page → "Send via Blink" → link copied to your clipboard
+- **Floating selection button** - a small button appears next to any text you select on a page; click it for the same one-click link
+- **Options page** - toggle the right-click menu and the floating button independently, pick a theme
+
+The extension talks directly to `blink.malto.icu`'s API (`host_permissions` in `extension/manifest.json`); it needs no server-side changes and ships from the `extension/` directory in this repo, versioned separately from the web app.
 
 ## Key architecture
 
@@ -151,6 +165,13 @@ blink/
 │   ├── manifest.json      # PWA manifest
 │   ├── sw.js / register-sw.js  # Offline-capable service worker
 │   └── fonts/              # Self-hosted woff2 files
+├── extension/             # Chrome/Firefox browser extension (Manifest V3)
+│   ├── manifest.json      # Permissions, content script, options page
+│   ├── background.js      # Service worker: context menu, link creation, clipboard
+│   ├── content.js         # Floating button on text selection
+│   ├── popup.html / popup.js / popup.css    # Toolbar popup (create + password tabs)
+│   ├── options.html / options.js / options.css  # Settings page (toggles, theme)
+│   └── crypto.js / config.js  # Shared encryption + API config with the website
 ├── .github/workflows/
 │   ├── ci.yml            # Lint, test, audit on every push/PR to main
 │   ├── codeql.yml        # Static security analysis
