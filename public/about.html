@@ -293,7 +293,7 @@
               Is my secret really deleted after being viewed?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Yes. The moment the recipient opens the link and reveals the secret, it is permanently deleted from the server's memory. There is no database, no backup, no log. Once gone, not even we can recover it. With a Pro multi-view link, deletion happens after the last allowed view instead of the first.</div>
+            <div class="faq-a"><div>Yes. The moment the recipient opens the link and reveals the secret, it is permanently deleted from the server's memory. There is no database, no backup, no log. Once gone, not even we can recover it. With a Pro multi-view link, deletion happens after the last allowed view instead of the first.</div></div>
           </div>
 
           <div class="faq-item">
@@ -301,7 +301,7 @@
               Can Blink read my secret?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">No. Your secret is encrypted in your browser before anything is sent to the server. The server only ever sees ciphertext, never plaintext. Even if the server were compromised, the attacker would need all four cryptographic keys to decrypt anything. And even if we somehow could read your secret, we would have no idea who sent it: no accounts, no names, no identity.</div>
+            <div class="faq-a"><div>No. Your secret is encrypted in your browser before anything is sent to the server. The server only ever sees ciphertext, never plaintext. Even if the server were compromised, the attacker would need all four cryptographic keys to decrypt anything. And even if we somehow could read your secret, we would have no idea who sent it: no accounts, no names, no identity.</div></div>
           </div>
 
           <div class="faq-item">
@@ -309,7 +309,7 @@
               How does the four-factor key work?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">The AES-256 key K is split: K1 goes in the URL fragment (never sent to the server), K2 is sent to the server but masked with HMAC(K3) before storage, and the ciphertext is re-encrypted with K4. K3 and K4 are permanent server environment variables that never travel anywhere. All four are required to reconstruct K and decrypt.</div>
+            <div class="faq-a"><div>The AES-256 key K is split: K1 goes in the URL fragment (never sent to the server), K2 is sent to the server but masked with HMAC(K3) before storage, and the ciphertext is re-encrypted with K4. K3 and K4 are permanent server environment variables that never travel anywhere. All four are required to reconstruct K and decrypt.</div></div>
           </div>
 
           <div class="faq-item">
@@ -317,7 +317,7 @@
               What if the recipient never opens the link?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Unviewed secrets automatically expire at your chosen time (1, 6, 24, or 48 hours, or 7 days with Pro). Once expired, the secret is purged from memory and the link becomes permanently invalid. Nothing is kept.</div>
+            <div class="faq-a"><div>Unviewed secrets automatically expire at your chosen time (1, 6, 24, or 48 hours, or 7 days with Pro). Once expired, the secret is purged from memory and the link becomes permanently invalid. Nothing is kept.</div></div>
           </div>
 
           <div class="faq-item">
@@ -325,7 +325,7 @@
               What is the email verification option?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Optionally, you can lock a secret to a specific recipient by entering their email address. They will receive a 6-digit one-time code that they must enter before the secret is revealed. Enter 5 wrong codes and the secret self-destructs permanently.</div>
+            <div class="faq-a"><div>Optionally, you can lock a secret to a specific recipient by entering their email address. They will receive a 6-digit one-time code that they must enter before the secret is revealed. Enter 5 wrong codes and the secret self-destructs permanently.</div></div>
           </div>
 
           <div class="faq-item">
@@ -333,7 +333,7 @@
               Can I view my own secret after sharing the link?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">No. Once you share the link, consider the secret gone. If you open it yourself, it will be deleted and the recipient will not be able to view it (on a Pro multi-view link, opening it consumes one of the allowed views). Simply create a new link if needed.</div>
+            <div class="faq-a"><div>No. Once you share the link, consider the secret gone. If you open it yourself, it will be deleted and the recipient will not be able to view it (on a Pro multi-view link, opening it consumes one of the allowed views). Simply create a new link if needed.</div></div>
           </div>
 
           <div class="faq-item">
@@ -341,7 +341,7 @@
               Is the link safe to share over WhatsApp or email?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Yes. The decryption key is in the URL fragment (the part after the #), which is never sent to any server. Even if intercepted, the link works only once. For maximum security, combine it with email OTP.</div>
+            <div class="faq-a"><div>Yes. The decryption key is in the URL fragment (the part after the #), which is never sent to any server. Even if intercepted, the link works only once. For maximum security, combine it with email OTP.</div></div>
           </div>
 
           <div class="faq-item">
@@ -349,7 +349,7 @@
               What kinds of secrets can I share?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Anything text-based: passwords, API keys, private notes, credentials, access codes, recovery phrases (up to 10 KB). You can also share files up to 2 MB (25 MB with Pro), encrypted in your browser before upload. Executable and script file types are blocked for safety. And the built-in password generator creates a strong password you can share instantly.</div>
+            <div class="faq-a"><div>Anything text-based: passwords, API keys, private notes, credentials, access codes, recovery phrases (up to 10 KB). You can also share files up to 2 MB (25 MB with Pro), encrypted in your browser before upload. Executable and script file types are blocked for safety. And the built-in password generator creates a strong password you can share instantly.</div></div>
           </div>
 
           <div class="faq-item">
@@ -357,7 +357,7 @@
               What is Blink Pro and how does the license work?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Pro raises the daily limit to 50 secrets and unlocks 25 MB files, 7-day expiry, multi-view links, passphrase protection, view notifications, and QR code sharing for $3.99/month. After checkout you receive a license key by email. Sign in with Google and paste the key once to link it to your account (this ties the license to your Google identity so it can't just be copy-pasted around). You can cancel anytime and keep using the free plan forever.</div>
+            <div class="faq-a"><div>Pro raises the daily limit to 50 secrets and unlocks 25 MB files, 7-day expiry, multi-view links, passphrase protection, view notifications, and QR code sharing for $3.99/month. After checkout you receive a license key by email. Sign in with Google and paste the key once to link it to your account (this ties the license to your Google identity so it can't just be copy-pasted around). You can cancel anytime and keep using the free plan forever.</div></div>
           </div>
 
           <div class="faq-item">
@@ -365,7 +365,7 @@
               Is there a browser extension?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Yes. The Blink extension is <a href="https://chromewebstore.google.com/detail/kllkcgnchmiaopmnaokioeajmdmfccgi" target="_blank" rel="noopener noreferrer" class="footer-link">available now for Chrome</a>, with Firefox and Edge coming soon. It uses the exact same encryption as the website: the secret is encrypted in your browser before anything is sent. Create a link from the toolbar popup, right-click any selected text and choose "Send via Blink," or click the floating button that appears next to a selection, either way the link lands straight on your clipboard. An options page lets you turn the right-click menu or floating button off if you only want one.</div>
+            <div class="faq-a"><div>Yes. The Blink extension is <a href="https://chromewebstore.google.com/detail/kllkcgnchmiaopmnaokioeajmdmfccgi" target="_blank" rel="noopener noreferrer" class="footer-link">available now for Chrome</a>, with Firefox and Edge coming soon. It uses the exact same encryption as the website: the secret is encrypted in your browser before anything is sent. Create a link from the toolbar popup, right-click any selected text and choose "Send via Blink," or click the floating button that appears next to a selection, either way the link lands straight on your clipboard. An options page lets you turn the right-click menu or floating button off if you only want one.</div></div>
           </div>
 
           <div class="faq-item">
@@ -373,7 +373,7 @@
               Is Blink open source?
               <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="faq-a">Yes. The full source code is on <a href="https://github.com/MALTOisHERE/onlyonce" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> under the AGPL-3.0 license, so anyone can audit the encryption instead of taking our word for it. You can also self-host Blink on your own server for free.</div>
+            <div class="faq-a"><div>Yes. The full source code is on <a href="https://github.com/MALTOisHERE/onlyonce" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a> under the AGPL-3.0 license, so anyone can audit the encryption instead of taking our word for it. You can also self-host Blink on your own server for free.</div></div>
           </div>
 
         </div>
