@@ -10,9 +10,15 @@ services:
     container_name: beszel
     restart: unless-stopped
     environment:
-      - APP_URL=${BESZEL_APP_URL:-http://localhost:8090}
+      - APP_URL=${BESZEL_APP_URL:-http://localhost:58988}
     ports:
-      - "127.0.0.1:8090:8090"
+      # Host-side port deliberately not Beszel's well-known default (8090),
+      # to avoid automated scanners that specifically probe for it. The
+      # container's own internal listen port (the second 8090) is fixed by
+      # the image itself and unrelated to this - only the host-side mapping
+      # changed. Still bound to localhost only either way; see README.md
+      # for exposing it behind a reverse proxy.
+      - "127.0.0.1:58988:8090"
     volumes:
       - ./beszel_data:/beszel_data
       - ./beszel_socket:/beszel_socket
@@ -32,6 +38,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - LISTEN=/beszel_socket/beszel.sock
-      - HUB_URL=http://localhost:8090
+      - HUB_URL=http://localhost:58988
       - TOKEN=${BESZEL_AGENT_TOKEN}
       - KEY=${BESZEL_AGENT_KEY}

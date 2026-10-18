@@ -12,7 +12,7 @@ It does not read or display Blink's own application logs (see the "Logging" sect
    cp .env.example .env
    docker compose up -d beszel
    ```
-2. **Open the hub's dashboard** at `http://<this-vps-ip>:8090` (or `http://localhost:8090` if you're on the box itself) and create the admin account when prompted.
+2. **Open the hub's dashboard** at `http://<this-vps-ip>:58988` (or `http://localhost:58988` if you're on the box itself) and create the admin account when prompted. (Port 58988 is deliberately not Beszel's well-known default of 8090 — see the comment in `docker-compose.yml`.)
 3. In the dashboard, click **Add System** (top right).
 4. Name the system (e.g. this VPS's hostname), and set **Host / IP** to the shared socket path: `/beszel_socket/beszel.sock`.
 5. The dialog shows a **TOKEN** and a **KEY** — copy both into `.env` in this directory as `BESZEL_AGENT_TOKEN` and `BESZEL_AGENT_KEY`.
@@ -24,7 +24,9 @@ It does not read or display Blink's own application logs (see the "Logging" sect
 
 ## Exposing the dashboard remotely
 
-By default the hub is bound to `127.0.0.1:8090` — only reachable from inside the VPS, the same pattern Blink's own `docker-compose.yml` uses for its app port. To reach it from outside, put nginx (or any reverse proxy) in front of it with its own TLS cert and subdomain, mirroring the nginx block already documented in the repo's main `README.md` for Blink itself — just pointing `proxy_pass` at `http://127.0.0.1:8090` instead. Then set `BESZEL_APP_URL` in `.env` to that public URL before restarting the hub.
+By default the hub is bound to `127.0.0.1:58988` — only reachable from inside the VPS, the same pattern Blink's own `docker-compose.yml` uses for its app port. To reach it from outside, put nginx (or any reverse proxy) in front of it with its own TLS cert and subdomain, mirroring the nginx block already documented in the repo's main `README.md` for Blink itself — just pointing `proxy_pass` at `http://127.0.0.1:58988` instead. Then set `BESZEL_APP_URL` in `.env` to that public URL before restarting the hub.
+
+Pick a subdomain name that doesn't advertise what monitoring tool you're running (e.g. `monitor.yourdomain.com` rather than `beszel.yourdomain.com`) — avoids being an easy target for anyone specifically scanning for known Beszel vulnerabilities. Keep the image on `:latest` and pull it periodically (the `deploy-beszel.yml` GitHub Action does this) so you're never stuck on a version with a known, patched CVE if you do expose this publicly.
 
 ## Updating
 
