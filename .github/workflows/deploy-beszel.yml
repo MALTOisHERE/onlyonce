@@ -1,0 +1,26 @@
+name: Deploy Beszel
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-beszel
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.VPS_PORT || '22' }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Pull latest config and restart the Beszel stack
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_PORT || '22' }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            "cd /var/www/blink && git pull && cd monitoring/beszel && docker compose pull && docker compose up -d"

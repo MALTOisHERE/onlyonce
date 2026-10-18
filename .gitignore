@@ -5,3 +5,6 @@ npm-debug.log*
 data/
 *.zip
 screenshot-*.png
+monitoring/beszel/beszel_data/
+monitoring/beszel/beszel_socket/
+monitoring/beszel/beszel_agent_data/

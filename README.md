@@ -113,6 +113,7 @@ Copy `.env.example` to `.env` for local overrides.
 - **`ci.yml`**: runs automatically on every push/PR to `main` (install, lint, test, `npm audit --audit-level=high`).
 - **`release.yml`**: manual only. Actions tab → "Release" → "Run workflow" → pick `patch`/`minor`/`major`. Runs lint+test first, then bumps `package.json`'s version via `npm version`, commits, tags (`vX.Y.Z`), pushes, and publishes a GitHub Release with auto-generated notes.
 - **`deploy.yml`**: manual only, intentionally decoupled from releases (deploying and cutting a version are separate decisions). SSHes into the VPS and runs `git pull && docker compose up -d --build`. Needs `VPS_HOST`, `VPS_USER`, and `VPS_SSH_KEY` set as repo secrets (Settings → Secrets and variables → Actions).
+- **`deploy-beszel.yml`**: manual only, separate from `deploy.yml` on purpose — the [Beszel monitoring stack](monitoring/beszel/README.md) is host infrastructure, not part of the Blink app, so it updates on its own schedule. Reuses the same three VPS secrets. See `monitoring/beszel/README.md` for the one-time setup this assumes is already done.
 
 ### nginx config
 
@@ -189,7 +190,10 @@ blink/
 │   ├── ci.yml            # Lint, test, audit on every push/PR to main
 │   ├── codeql.yml        # Static security analysis
 │   ├── release.yml       # Manual: bump version, tag, publish a GitHub Release
-│   └── deploy.yml        # Manual: SSH deploy to the VPS (separate from release)
+│   ├── deploy.yml        # Manual: SSH deploy to the VPS (separate from release)
+│   └── deploy-beszel.yml # Manual: update the Beszel monitoring stack (separate from the app deploy)
+├── monitoring/
+│   └── beszel/           # VPS monitoring (hub + agent), not part of the Blink app itself
 ├── Dockerfile
 ├── docker-compose.yml
 └── .env.example
