@@ -67,32 +67,38 @@ if (process.env.NODE_ENV === 'production' && process.env.HOST) {
 const createLimiter = new RateLimiter(60_000,    parseInt(process.env.CREATE_RATE_LIMIT || '10',  10));
 const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_LIMIT   || '30',  10));
 const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
-// Bucketed by the signed-in Google account, so every session using the same
+// Bucketed by the signed-in account, so every session using the same
 // license — however it ended up authenticated — shares one daily quota. This
 // is now a secondary safety net: the real protection is that Pro requires a
-// live Google session per account (Activation Limit = 1), not a copy-pasteable
+// live session per account (Activation Limit = 1), not a copy-pasteable
 // key. This limiter just guards against runaway/automated abuse of one account.
 const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO_USAGE_RATE_LIMIT || '50', 10));
 // Free tier has no account concept, so this is bucketed by IP — the only
 // signal available for an anonymous creator.
 const freeUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.FREE_USAGE_RATE_LIMIT || '5', 10));
 
-// ── Blink Pro licensing (Lemon Squeezy + Google Sign-In) ────────────────────
+// ── Blink Pro licensing (Lemon Squeezy + Google/GitHub Sign-In) ─────────────
 // The license key and its Lemon Squeezy instance ID live ONLY on the server,
-// keyed by a verified Google account — never in the browser. The browser only
-// ever holds a signed session cookie proving "this Google account is logged
-// in right now." A raw license key + instance ID pasted into a chat is just
-// two copy-pasteable strings; a live Google login is not something people
-// hand out the same way, which is what actually stops casual key sharing.
+// keyed by a hash of the signed-in account's verified email — never in the
+// browser. The browser only ever holds a signed session cookie proving "this
+// email is logged in right now." Keying by email (rather than a
+// provider-specific account ID) is deliberate: it's what makes Google and
+// GitHub sign-in resolve to the SAME Pro account whenever both are verified
+// for the same address. Two different emails are, correctly, two different
+// accounts — no linking happens unless the email itself matches.
+// A raw license key + instance ID pasted into a chat is just two
+// copy-pasteable strings; a live OAuth login is not something people hand
+// out the same way, which is what actually stops casual key sharing.
 // Set the Lemon Squeezy product's Activation Limit to 1 so a key can only
-// ever be bound to one Google account at a time.
+// ever be bound to one account (one email) at a time.
 const LS_STORE_ID    = process.env.LS_STORE_ID   ? Number(process.env.LS_STORE_ID)   : null;
 const LS_PRODUCT_ID  = process.env.LS_PRODUCT_ID ? Number(process.env.LS_PRODUCT_ID) : null;
 const PRO_DEV_KEY    = process.env.BLINK_PRO_DEV_KEY || null;
-// Site owner allowlist — these Google accounts always have Pro, no license or
-// Lemon Squeezy involved. Safer than a shared bearer key for this: even if the
-// env var leaked, it only grants Pro to a specific real Google identity, not
-// to anyone who happens to read the value. Comma-separated in OWNER_EMAILS.
+// Site owner allowlist — these accounts (by email, either sign-in provider)
+// always have Pro, no license or Lemon Squeezy involved. Safer than a shared
+// bearer key for this: even if the env var leaked, it only grants Pro to a
+// specific real, provider-verified email, not to anyone who happens to read
+// the value. Comma-separated in OWNER_EMAILS.
 const OWNER_EMAILS = new Set(
   (process.env.OWNER_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 );
@@ -164,8 +170,8 @@ async function checkLicenseInstance(key, instanceId) {
   return valid;
 }
 
-// ── Persistent license store, keyed by a hash of the Google account ID ─────
-// { [sha256(sub)]: { licenseKey, instanceId, email, activatedAt } }
+// ── Persistent license store, keyed by a hash of the account's verified email ──
+// { [sha256(email.toLowerCase())]: { licenseKey, instanceId, email, activatedAt } }
 // Never sent to the browser — only the session cookie is. Mirrors the
 // STATS_FILE persistence pattern already used elsewhere in this file.
 const LICENSES_FILE = process.env.LICENSES_FILE || path.join(__dirname, 'data', 'licenses.json');
@@ -175,6 +181,27 @@ try {
   fs.mkdirSync(path.dirname(LICENSES_FILE), { recursive: true });
   licenses = JSON.parse(fs.readFileSync(LICENSES_FILE, 'utf8'));
 } catch {}
+
+// One-time migration: older records were keyed by a hash of the Google
+// account's "sub" ID rather than email. Re-key anything we can (every record
+// already stores its email) so Google and GitHub sign-in start resolving to
+// the same account immediately, instead of only for newly-activated licenses.
+{
+  let migrated = false;
+  for (const [oldKey, record] of Object.entries(licenses)) {
+    if (!record?.email) continue;
+    const newKey = emailHash(record.email);
+    if (newKey === oldKey) continue; // already keyed correctly
+    if (licenses[newKey]) {
+      console.warn(`[licenses] migration: ${record.email} already has a record under the new key, leaving old key ${oldKey} in place for manual review`);
+      continue;
+    }
+    licenses[newKey] = record;
+    delete licenses[oldKey];
+    migrated = true;
+  }
+  if (migrated) saveLicenses(); // hoisted function, defined just below
+}
 
 function saveLicenses() {
   try {
@@ -227,6 +254,13 @@ function unsignValue(signed, secret) {
   return value;
 }
 
+// The one identity key shared across every sign-in provider: whichever
+// provider you authenticate with, this is what actually gets looked up in
+// `licenses`. Same verified email -> same hash -> same Pro account.
+function emailHash(email) {
+  return crypto.createHash('sha256').update(String(email).toLowerCase()).digest('hex');
+}
+
 function cookieAttrs(maxAgeSeconds) {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
   return `HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
@@ -268,6 +302,8 @@ async function isProForSession(session) {
 
 // ── Google OAuth (server-side redirect flow — no client-side Google JS SDK,
 // so the strict script-src 'self' CSP never needs loosening) ───────────────
+// See the GitHub OAuth block further down for the second sign-in option;
+// both resolve to the same account whenever the verified email matches.
 const GOOGLE_CLIENT_ID       = process.env.GOOGLE_CLIENT_ID     || null;
 const GOOGLE_CLIENT_SECRET   = process.env.GOOGLE_CLIENT_SECRET || null;
 const GOOGLE_REDIRECT_URI    = process.env.GOOGLE_REDIRECT_URI  || null;
@@ -326,8 +362,87 @@ app.get('/api/auth/google/callback', async (req, res) => {
       return res.redirect('/?auth=error');
     }
 
-    const subHash = crypto.createHash('sha256').update(String(info.sub)).digest('hex');
-    setSessionCookie(res, subHash, info.email || null);
+    setSessionCookie(res, emailHash(info.email), info.email);
+    res.redirect('/?auth=success');
+  } catch (err) {
+    console.error('[oauth]', err.message);
+    res.redirect('/?auth=error');
+  }
+});
+
+// ── GitHub OAuth (same server-side redirect flow as Google) ────────────────
+// Resolves to the exact same account as Google whenever the verified email
+// matches — see emailHash() above and the licenses-store comment. GitHub
+// accounts can have a private primary email, so this requires the
+// "user:email" scope and reads the dedicated /user/emails endpoint rather
+// than the basic /user profile.
+const GITHUB_CLIENT_ID       = process.env.GITHUB_CLIENT_ID     || null;
+const GITHUB_CLIENT_SECRET   = process.env.GITHUB_CLIENT_SECRET || null;
+const GITHUB_REDIRECT_URI    = process.env.GITHUB_REDIRECT_URI  || null;
+const GITHUB_AUTH_CONFIGURED = !!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET && GITHUB_REDIRECT_URI && SESSION_SECRET);
+
+app.get('/api/auth/github/start', (req, res) => {
+  if (!GITHUB_AUTH_CONFIGURED) {
+    return res.status(503).send('GitHub sign-in is not configured on this server.');
+  }
+  const state = crypto.randomBytes(24).toString('base64url');
+  res.append('Set-Cookie', `${OAUTH_STATE_COOKIE}=${state}; ${cookieAttrs(600)}`);
+  const params = new URLSearchParams({
+    client_id:    GITHUB_CLIENT_ID,
+    redirect_uri: GITHUB_REDIRECT_URI,
+    scope:        'read:user user:email',
+    state,
+    allow_signup: 'true',
+  });
+  res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
+});
+
+app.get('/api/auth/github/callback', async (req, res) => {
+  res.append('Set-Cookie', `${OAUTH_STATE_COOKIE}=; ${cookieAttrs(0)}`);
+  if (!GITHUB_AUTH_CONFIGURED) {
+    return res.status(503).send('GitHub sign-in is not configured on this server.');
+  }
+  const { code, state } = req.query;
+  const expectedState = parseCookies(req.headers.cookie)[OAUTH_STATE_COOKIE];
+  if (!code || !state || !expectedState || state !== expectedState) {
+    return res.redirect('/?auth=error');
+  }
+
+  try {
+    const tokenResp = await fetch('https://github.com/login/oauth/access_token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+      body: new URLSearchParams({
+        code:          String(code),
+        client_id:     GITHUB_CLIENT_ID,
+        client_secret: GITHUB_CLIENT_SECRET,
+        redirect_uri:  GITHUB_REDIRECT_URI,
+      }),
+    });
+    const tokenData = await tokenResp.json();
+    if (!tokenData.access_token) {
+      return res.redirect('/?auth=error');
+    }
+
+    // GitHub's /user endpoint only returns a public email if the account has
+    // one set; the verified primary address lives in /user/emails instead,
+    // and requires its own request with the "user:email" scope.
+    const emailsResp = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Accept':        'application/vnd.github+json',
+        'User-Agent':    'blink-app',
+      },
+    });
+    const emails = await emailsResp.json();
+    const primary = Array.isArray(emails)
+      ? emails.find(e => e.primary && e.verified) || emails.find(e => e.verified)
+      : null;
+    if (!primary?.email) {
+      return res.redirect('/?auth=error');
+    }
+
+    setSessionCookie(res, emailHash(primary.email), primary.email);
     res.redirect('/?auth=success');
   } catch (err) {
     console.error('[oauth]', err.message);
@@ -351,11 +466,11 @@ app.post('/api/auth/logout', (req, res) => {
 });
 
 // Dev-only bypass so the full session -> license flow can be tested locally
-// without real Google Cloud credentials. Never registered in production.
+// without real Google/GitHub OAuth credentials. Never registered in production.
 if (process.env.NODE_ENV !== 'production' && PRO_DEV_KEY) {
   app.get('/api/auth/dev-login', (req, res) => {
-    const subHash = crypto.createHash('sha256').update('dev-user').digest('hex');
-    setSessionCookie(res, subHash, 'dev@example.com');
+    const devEmail = 'dev@example.com';
+    setSessionCookie(res, emailHash(devEmail), devEmail);
     res.redirect('/?auth=success');
   });
 }
@@ -641,10 +756,11 @@ async function sendViewNotification(to, viewsLeft, id) {
 }
 
 // ── POST /api/license/activate ───────────────────────────────────────────────
-// Requires a Google-verified session. Binds the submitted key to THIS Google
-// account — the Lemon Squeezy product's Activation Limit (set to 1) enforces
-// that no other account can ever activate the same key. The key and instance
-// ID are stored server-side only; the browser never receives them.
+// Requires a verified session (Google or GitHub). Binds the submitted key to
+// THIS account's email — the Lemon Squeezy product's Activation Limit (set
+// to 1) enforces that no other account can ever activate the same key. The
+// key and instance ID are stored server-side only; the browser never
+// receives them.
 app.post('/api/license/activate', createLimiter.middleware(), jsonSmall, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const session = readSession(req);
@@ -679,7 +795,7 @@ app.post('/api/license/activate', createLimiter.middleware(), jsonSmall, async (
   }
 
   try {
-    const { ok, instanceId, error } = await activateLicense(key, `google-${subHash}`);
+    const { ok, instanceId, error } = await activateLicense(key, `account-${subHash}`);
     if (!ok) {
       saveLicenses();
       const limitReached = /activation limit/i.test(error || '');
@@ -737,8 +853,8 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
 
   const isPro = req.isPro === true;
   if (isPro) {
-    // Bucketed by the Google account (already a one-way hash of the Google
-    // subject ID), not the license key — with Activation Limit = 1 the two
+    // Bucketed by the account (already a one-way hash of its verified
+    // email), not the license key — with Activation Limit = 1 the two
     // are equivalent, and this way the raw key is never touched here.
     const retryAfter = licenseUsageLimiter.check(req.session.sub);
     if (retryAfter > 0) {
@@ -1072,7 +1188,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.warn('[warn] LS_STORE_ID / LS_PRODUCT_ID not set — Lemon Squeezy keys from ANY store would validate; Pro effectively limited to BLINK_PRO_DEV_KEY');
   }
   if (!GOOGLE_AUTH_CONFIGURED) {
-    console.warn('[warn] Google sign-in not fully configured (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI/SESSION_SECRET) — Pro sign-in is disabled; only BLINK_PRO_DEV_KEY dev-login works locally');
+    console.warn('[warn] Google sign-in not fully configured (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI/SESSION_SECRET) — Google Pro sign-in is disabled');
+  }
+  if (!GITHUB_AUTH_CONFIGURED) {
+    console.warn('[warn] GitHub sign-in not fully configured (GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET/GITHUB_REDIRECT_URI/SESSION_SECRET) — GitHub Pro sign-in is disabled');
+  }
+  if (!GOOGLE_AUTH_CONFIGURED && !GITHUB_AUTH_CONFIGURED) {
+    console.warn('[warn] No Pro sign-in provider configured — only BLINK_PRO_DEV_KEY dev-login works locally');
   }
   if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
     console.warn('[warn] HOST not set — HTTPS redirect will not work in production');

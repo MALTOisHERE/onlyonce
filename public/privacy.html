@@ -69,7 +69,7 @@
         <ul>
           <li><strong>Ciphertext, IV, and masked key half:</strong> held in server memory only (never written to disk), for as long as the secret is unviewed and unexpired. Deleted immediately on first view, or automatically purged at your chosen expiry.</li>
           <li><strong>Recipient email (optional):</strong> if you use the "lock to a recipient" feature, that address is used once to send a one-time verification code via our email provider, Resend. It is not kept beyond the secret's lifetime and is never added to a mailing list.</li>
-          <li><strong>Google account (optional, Pro sign-in):</strong> we store a one-way hash of your Google account ID plus the email address Google provides, solely to tie a Pro license to your account. We never receive or request your Google password.</li>
+          <li><strong>Google or GitHub sign-in (optional, Pro):</strong> we store a one-way hash of your verified email address, plus the address itself, solely to tie a Pro license to your account. Signing in with Google and with GitHub using the same email resolves to the same account and the same license; different emails are different accounts. We never receive or request your Google or GitHub password.</li>
           <li><strong>Payment details (optional, Pro):</strong> handled entirely by Lemon Squeezy. Blink's own server never receives your card number or billing details.</li>
           <li><strong>IP address:</strong> used transiently for rate limiting (to stop abuse), not logged or stored.</li>
         </ul>
