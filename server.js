@@ -715,6 +715,18 @@ function idFragment(id) {
   return id.slice(-8);
 }
 
+// Chrome's own behavior, not anything the extension sets deliberately: a
+// fetch() from an extension's background service worker always carries
+// Origin: chrome-extension://<id>, while the website's own same-origin
+// requests carry Origin: https://blink.malto.icu. No CORS handling needed
+// either way - this is purely for telling the two apart in logs.
+function requestSource(req) {
+  const origin = req.headers.origin || '';
+  if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) return 'extension';
+  if (origin) return 'web';
+  return 'unknown';
+}
+
 function formatExpiry(hours) {
   if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'}`;
   const days = Math.round(hours / 24);
@@ -1103,6 +1115,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
 
   req.log.info({
     secretId:    idFragment(id),
+    source:      requestSource(req),
     isPro,
     isFile:      isFileSecret,
     viewsAllowed,
