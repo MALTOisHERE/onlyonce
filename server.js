@@ -15,7 +15,17 @@ const { version: APP_VERSION } = require('./package.json');
 const app = express();
 
 // ── Trust reverse proxy (nginx, Cloudflare, etc.) ──────────────────────────
-app.set('trust proxy', 1);
+// Two real hops sit between the visitor and this app: Cloudflare's edge,
+// then nginx - each one is a layer X-Forwarded-For has to be peeled back
+// through. Trusting only 1 (as this used to say) makes req.ip resolve to
+// Cloudflare's own edge IP, which rotates per-request even for the same
+// visitor - silently breaking every IP-keyed thing in this file (all five
+// rate limiters, and the `ip` field on every log line) since each request
+// lands in a different bucket that never accumulates. Verified empirically
+// against the exact X-Forwarded-For shape production actually sends
+// (stable visitor IP first, rotating Cloudflare edge IP second): trusting
+// 1 hop resolves to the rotating one, trusting 2 resolves to the real one.
+app.set('trust proxy', 2);
 
 // ── Request logging ──────────────────────────────────────────────────────────
 // Every request still gets req.log attached (route handlers log their own
@@ -47,7 +57,7 @@ app.use(pinoHttp({
   // pino-http's own req.remoteAddress reads the raw TCP socket, which behind
   // nginx/Cloudflare is always the reverse proxy's address, not the visitor's
   // - useless for "who actually did this." req.ip is Express's own address,
-  // already trust-proxy-aware (see app.set('trust proxy', 1) above, which
+  // already trust-proxy-aware (see app.set('trust proxy', 2) above, which
   // the rate limiters already rely on for the same reason) and resolves to
   // the real client IP. customProps runs per-request, so it sees the same
   // req.ip every route handler does. Added here, not as a replacement for
@@ -1015,7 +1025,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     if (retryAfter > 0) {
       res.setHeader('Retry-After', String(retryAfter));
       req.log.warn({ limiter: 'free-usage', retryAfter }, 'rate limit exceeded');
-      return res.status(429).json({ error: 'Free plan is limited to 5 secrets per day. Upgrade to Pro for more, or try again tomorrow.' });
+      return res.status(429).json({ error: `Free plan is limited to ${freeUsageLimiter.max} secrets per day. Upgrade to Pro for more, or try again tomorrow.` });
     }
   }
   const isFileSecret = isFile === true;
