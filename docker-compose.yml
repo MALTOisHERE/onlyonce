@@ -15,6 +15,7 @@ services:
       - "EMAIL_FROM=Blink <noreply@malto.icu>"
       - STATS_FILE=/data/stats.json
       - LICENSES_FILE=/data/licenses.json
+      - SECRETS_SNAPSHOT_FILE=/data/secrets-snapshot.json
       - LOGS_DIR=/data/logs
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LS_STORE_ID=${LS_STORE_ID}

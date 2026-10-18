@@ -562,6 +562,17 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // ── In-memory store ─────────────────────────────────────────────────────────
+// Deliberately never touches disk during normal operation - that's what
+// makes a VPS compromise or disk forensics unable to recover a pending
+// secret. The one exception: a GRACEFUL shutdown (a deploy, `docker compose
+// restart`) snapshots this Map to the existing /data volume just before
+// exiting, and reloads it on the next startup - see saveSecretsSnapshot()
+// and loadSecretsSnapshot() below. This loses nothing extra in security
+// terms: every value already stored here is the same encrypted ciphertext
+// and K3-masked K2 that would be written to the snapshot, never plaintext,
+// never usable without K1 (which never reaches the server). A hard crash,
+// SIGKILL, or power loss still loses everything unviewed - there's no
+// graceful-shutdown moment to snapshot in that case, same as always.
 const secrets     = new Map();
 const MAX_SECRETS      = 10_000;
 const ALLOWED_TTL_HOURS     = new Set([1, 6, 24, 48]);
@@ -571,6 +582,52 @@ const MAX_VIEWS_PRO       = 5;
 const PASSPHRASE_MIN_LEN  = 4;
 const PASSPHRASE_MAX_LEN  = 128;
 const MAX_AUTH_ATTEMPTS   = 5;
+
+const SECRETS_SNAPSHOT_FILE = process.env.SECRETS_SNAPSHOT_FILE || path.join(__dirname, 'data', 'secrets-snapshot.json');
+
+function loadSecretsSnapshot() {
+  let raw;
+  try {
+    raw = fs.readFileSync(SECRETS_SNAPSHOT_FILE, 'utf8');
+  } catch {
+    return; // normal case: no snapshot exists (last shutdown wasn't graceful, or this is a fresh start)
+  }
+  // Delete immediately after reading, graceful or not - a snapshot should
+  // never linger on disk longer than the one restart it was written for.
+  try { fs.unlinkSync(SECRETS_SNAPSHOT_FILE); } catch {}
+
+  let entries;
+  try {
+    entries = JSON.parse(raw);
+  } catch (err) {
+    logger.error({ err }, 'secrets snapshot was corrupt, discarding it');
+    return;
+  }
+
+  const now = Date.now();
+  let restored = 0;
+  let expired  = 0;
+  for (const [id, secret] of entries) {
+    if (secret.expiresAt <= now) { expired++; continue; }
+    secrets.set(id, secret);
+    restored++;
+  }
+  logger.info({ restored, expired }, 'secrets restored from graceful-shutdown snapshot');
+}
+
+function saveSecretsSnapshot() {
+  try {
+    const tmp = SECRETS_SNAPSHOT_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify([...secrets.entries()]));
+    fs.renameSync(tmp, SECRETS_SNAPSHOT_FILE);
+    logger.info({ count: secrets.size }, 'secrets snapshotted for graceful restart');
+  } catch (err) {
+    logger.error({ err }, 'failed to snapshot secrets before shutdown - any unviewed secret will be lost');
+  }
+}
+
+try { fs.mkdirSync(path.dirname(SECRETS_SNAPSHOT_FILE), { recursive: true }); } catch {}
+loadSecretsSnapshot();
 
 // ── Statistics ───────────────────────────────────────────────────────────────
 const STATS_FILE = process.env.STATS_FILE || path.join(__dirname, 'data', 'stats.json');
@@ -1346,6 +1403,7 @@ if (require.main === module) {
     logger.info({ signal }, 'shutting down');
     saveStats();
     server.close(() => {
+      saveSecretsSnapshot();
       secrets.clear();
       flushLogs().then(() => process.exit(0));
     });

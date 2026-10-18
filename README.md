@@ -29,7 +29,7 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 - **Browser extension** - create a link from the popup, the right-click menu, or a floating button on any text selection, without opening the site (see below)
 - **Light/dark theme** - defaults to light, remembers your choice
 - **Rate limited** - 10 creates / 30 reads per minute per IP; 3 email OTPs per hour per IP
-- **No database** - in-memory store, ephemeral by design
+- **No database** - in-memory store, ephemeral by design. Survives a graceful restart (a deploy) via a snapshot of the already-encrypted data to disk, deleted the moment it's reloaded - but a hard crash or `SIGKILL` still loses anything unviewed, by design, same as always
 - **Security headers** - CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy
 
 ## Browser extension
