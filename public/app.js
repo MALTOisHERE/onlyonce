@@ -479,11 +479,17 @@
   // tier, when it resets), that it deserves a popup like the Pro modal
   // instead of a toast that auto-dismisses after 5 seconds.
   const limitOverlay = document.getElementById('limit-overlay');
-  function showLimitModal(msg) {
+  const limitUpgradeBtn = document.getElementById('limit-modal-upgrade');
+  function showLimitModal(msg, offerUpgrade) {
     document.getElementById('limit-modal-body').textContent = msg;
+    limitUpgradeBtn.classList.toggle('hidden', !offerUpgrade);
     openModal(limitOverlay);
   }
   document.getElementById('limit-modal-close').addEventListener('click', () => limitOverlay.classList.add('hidden'));
+  limitUpgradeBtn.addEventListener('click', () => {
+    limitOverlay.classList.add('hidden');
+    showProModal('Blink Pro');
+  });
   limitOverlay.addEventListener('click', e => { if (e.target === limitOverlay) limitOverlay.classList.add('hidden'); });
 
   // ── QR code modal (Pro) ─────────────────────────────────────────────────
@@ -657,7 +663,10 @@
           ? 'Too many requests. Please wait a moment and try again.'
           : 'Something went wrong. Please try again.');
         if (res.status === 429) {
-          showLimitModal(message);
+          // Only the free-tier daily cap is actually solved by upgrading -
+          // the per-minute burst limiter applies to every plan alike, so
+          // offering "Upgrade to Pro" there would be a dead end.
+          showLimitModal(message, !isPro && message.startsWith('Free plan is limited'));
         } else {
           showError(message);
         }
