@@ -5,7 +5,7 @@
   "parserOptions": { "ecmaVersion": 2022 },
   "rules": {
     "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "no-console": "off",
+    "no-console": "error",
     "prefer-const": "error",
     "no-var": "error",
     "eqeqeq": ["error", "always"],

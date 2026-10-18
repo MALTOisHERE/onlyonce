@@ -146,11 +146,24 @@ server {
 | Host header injection | HTTPS redirect uses `process.env.HOST`, not `req.headers.host` |
 | Memory exhaustion | 10 000 secret cap; 1–48h TTL (user-chosen); purge interval every 60s |
 
+## Logging
+
+Structured logging via [pino](https://getpino.io), end to end. Every `/api/*` request gets one access-log line (method, url, status, response time, a request id, the real client IP even behind a reverse proxy); static assets and plain page loads stay quiet to avoid one line per file on every page view. Every significant action a route handler takes — secret created/viewed/destroyed, OTP sent/verified, license activated/deactivated, OAuth login, rate limits, tampered sessions — logs under that same request id regardless of path, so a single request's whole story can be traced by id, and errors are never silenced by the quiet-static-assets rule.
+
+Every log line goes to **both**:
+- the console (pretty-printed by default — set `LOG_PRETTY=false` for raw JSON), for `docker logs` / a terminal
+- a rotating file under `LOGS_DIR` (defaults to `data/logs`, the same Docker volume as `stats.json`/`licenses.json`) — one file per day, gzipped after rotation, auto-deleted after 14 days, so nothing is lost across a container restart
+
+**What never reaches a log line, regardless of `LOG_LEVEL`:** secret plaintext/ciphertext, OTP codes, passphrases, license keys, encryption keys, session cookies. Route handlers only ever log specific chosen fields (an id fragment, a boolean, a count) — never a whole `req.body` or `req.headers` object — and pino's `redact` config is a backstop for those exact field names on top of that.
+
 ## Project structure
 
 ```
 blink/
 ├── server.js            # Express server, rate limiter, secret store, email OTP
+├── lib/
+│   ├── logger.js        # Structured logging (pino): console + rotating file
+│   └── ratelimiter.js   # Fixed-window rate limiter
 ├── public/
 │   ├── index.html       # Create page
 │   ├── view.html        # View-once page

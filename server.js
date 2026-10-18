@@ -5,9 +5,10 @@ const crypto       = require('crypto');
 const fs           = require('fs');
 const path         = require('path');
 const { Resend }   = require('resend');
-const morgan       = require('morgan');
+const pinoHttp     = require('pino-http');
 
-const { RateLimiter } = require('./lib/ratelimiter');
+const { RateLimiter }  = require('./lib/ratelimiter');
+const { logger, LOGS_DIR, flushLogs } = require('./lib/logger');
 
 const { version: APP_VERSION } = require('./package.json');
 
@@ -17,7 +18,45 @@ const app = express();
 app.set('trust proxy', 1);
 
 // ── Request logging ──────────────────────────────────────────────────────────
-app.use(morgan('combined'));
+// Every request still gets req.log attached (route handlers log their own
+// business events through it, carrying the same request id, so a single
+// request's whole story can be traced by id) — but the automatic "request
+// completed" line is only emitted for /api/* traffic, where the actions
+// actually are. Static assets and plain page loads (CSS, JS, images, /,
+// /about, /view/:id, ...) would otherwise produce one log line per file on
+// every page load, which is pure noise next to the business-event logs
+// already scattered through the API routes. Errors are never silenced by
+// this: the global error handler and the 404 handler below log explicitly,
+// regardless of path, independent of this ignore rule.
+app.use(pinoHttp({
+  logger,
+  autoLogging: {
+    ignore(req) { return !req.url.startsWith('/api/'); },
+  },
+  customLogLevel(req, res, err) {
+    if (err || res.statusCode >= 500) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+  customSuccessMessage(req, res) {
+    return `${req.method} ${req.url} ${res.statusCode}`;
+  },
+  customErrorMessage(req, res, err) {
+    return `${req.method} ${req.url} ${res.statusCode} - ${err.message}`;
+  },
+  // pino-http's own req.remoteAddress reads the raw TCP socket, which behind
+  // nginx/Cloudflare is always the reverse proxy's address, not the visitor's
+  // - useless for "who actually did this." req.ip is Express's own address,
+  // already trust-proxy-aware (see app.set('trust proxy', 1) above, which
+  // the rate limiters already rely on for the same reason) and resolves to
+  // the real client IP. customProps runs per-request, so it sees the same
+  // req.ip every route handler does. Added here, not as a replacement for
+  // remoteAddress, so both are visible: `ip` for attribution, remoteAddress
+  // for proxy-layer debugging if that's ever actually what's being debugged.
+  customProps(req) {
+    return { ip: req.ip };
+  },
+}));
 
 // ── Security headers ────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -64,18 +103,18 @@ if (process.env.NODE_ENV === 'production' && process.env.HOST) {
 }
 
 // ── Rate limiters (configurable via env for testing) ───────────────────────
-const createLimiter = new RateLimiter(60_000,    parseInt(process.env.CREATE_RATE_LIMIT || '10',  10));
-const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_LIMIT   || '30',  10));
-const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10));
+const createLimiter = new RateLimiter(60_000,    parseInt(process.env.CREATE_RATE_LIMIT || '10',  10), 'create');
+const readLimiter   = new RateLimiter(60_000,    parseInt(process.env.READ_RATE_LIMIT   || '30',  10), 'read');
+const emailLimiter  = new RateLimiter(3_600_000, parseInt(process.env.EMAIL_RATE_LIMIT  || '3',   10), 'email');
 // Bucketed by the signed-in account, so every session using the same
 // license — however it ended up authenticated — shares one daily quota. This
 // is now a secondary safety net: the real protection is that Pro requires a
 // live session per account (Activation Limit = 1), not a copy-pasteable
 // key. This limiter just guards against runaway/automated abuse of one account.
-const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO_USAGE_RATE_LIMIT || '50', 10));
+const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO_USAGE_RATE_LIMIT || '50', 10), 'pro-usage');
 // Free tier has no account concept, so this is bucketed by IP — the only
 // signal available for an anonymous creator.
-const freeUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.FREE_USAGE_RATE_LIMIT || '5', 10));
+const freeUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.FREE_USAGE_RATE_LIMIT || '5', 10), 'free-usage');
 
 // ── Blink Pro licensing (Lemon Squeezy + Google/GitHub Sign-In) ─────────────
 // The license key and its Lemon Squeezy instance ID live ONLY on the server,
@@ -157,7 +196,7 @@ async function checkLicenseInstance(key, instanceId) {
       && status !== 'expired' && status !== 'disabled'
       && licenseMetaMatches(data);
   } catch (err) {
-    console.error('[license]', err.message);
+    logger.error({ err, licenseFragment: key.slice(-6) }, 'license validation request failed');
     // Lemon Squeezy unreachable: honour a stale cache entry rather than lock out a paying user
     if (cached) return cached.valid;
     return false;
@@ -193,7 +232,7 @@ try {
     const newKey = emailHash(record.email);
     if (newKey === oldKey) continue; // already keyed correctly
     if (licenses[newKey]) {
-      console.warn(`[licenses] migration: ${record.email} already has a record under the new key, leaving old key ${oldKey} in place for manual review`);
+      logger.warn({ oldKey, newKey }, 'license migration: email already has a record under the new key, leaving old key in place for manual review');
       continue;
     }
     licenses[newKey] = record;
@@ -209,7 +248,7 @@ function saveLicenses() {
     fs.writeFileSync(tmp, JSON.stringify(licenses, null, 2));
     fs.renameSync(tmp, LICENSES_FILE);
   } catch (err) {
-    console.error('[licenses]', err.message);
+    logger.error({ err }, 'failed to persist licenses file');
   }
 }
 
@@ -281,13 +320,27 @@ function readSession(req) {
   const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!raw) return null;
   const encoded = unsignValue(raw, SESSION_SECRET);
-  if (!encoded) return null;
+  if (!encoded) {
+    // Signature didn't match — either a forged/tampered cookie, or an old
+    // one signed under a SESSION_SECRET that's since been rotated. Worth
+    // knowing about either way; this is otherwise indistinguishable from
+    // "not logged in" anywhere else in the request's handling.
+    req.log?.warn('session cookie present but signature invalid');
+    return null;
+  }
   try {
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
-    if (typeof payload.sub !== 'string' || typeof payload.exp !== 'number') return null;
-    if (Date.now() > payload.exp) return null;
+    if (typeof payload.sub !== 'string' || typeof payload.exp !== 'number') {
+      req.log?.warn('session cookie present but malformed payload');
+      return null;
+    }
+    if (Date.now() > payload.exp) {
+      req.log?.debug({ account: payload.sub }, 'session cookie expired');
+      return null;
+    }
     return payload;
   } catch {
+    req.log?.warn('session cookie present but not valid JSON');
     return null;
   }
 }
@@ -311,6 +364,7 @@ const GOOGLE_AUTH_CONFIGURED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET && GO
 
 app.get('/api/auth/google/start', (req, res) => {
   if (!GOOGLE_AUTH_CONFIGURED) {
+    req.log.warn('google sign-in attempted but not configured on this server');
     return res.status(503).send('Google sign-in is not configured on this server.');
   }
   const state = crypto.randomBytes(24).toString('base64url');
@@ -329,11 +383,13 @@ app.get('/api/auth/google/start', (req, res) => {
 app.get('/api/auth/google/callback', async (req, res) => {
   res.append('Set-Cookie', `${OAUTH_STATE_COOKIE}=; ${cookieAttrs(0)}`);
   if (!GOOGLE_AUTH_CONFIGURED) {
+    req.log.warn('google oauth callback hit but not configured on this server');
     return res.status(503).send('Google sign-in is not configured on this server.');
   }
   const { code, state } = req.query;
   const expectedState = parseCookies(req.headers.cookie)[OAUTH_STATE_COOKIE];
   if (!code || !state || !expectedState || state !== expectedState) {
+    req.log.warn('google oauth callback rejected: missing or mismatched state');
     return res.redirect('/?auth=error');
   }
 
@@ -351,6 +407,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     });
     const tokenData = await tokenResp.json();
     if (!tokenData.id_token) {
+      req.log.warn('google oauth callback: token exchange returned no id_token');
       return res.redirect('/?auth=error');
     }
 
@@ -359,13 +416,15 @@ app.get('/api/auth/google/callback', async (req, res) => {
     const infoResp = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(tokenData.id_token)}`);
     const info = await infoResp.json();
     if (info.aud !== GOOGLE_CLIENT_ID || info.email_verified !== 'true' || !info.sub) {
+      req.log.warn('google oauth callback: tokeninfo failed verification');
       return res.redirect('/?auth=error');
     }
 
     setSessionCookie(res, emailHash(info.email), info.email);
+    req.log.info({ provider: 'google', emailHash: emailHash(info.email) }, 'oauth login succeeded');
     res.redirect('/?auth=success');
   } catch (err) {
-    console.error('[oauth]', err.message);
+    req.log.error({ err, provider: 'google' }, 'oauth callback failed');
     res.redirect('/?auth=error');
   }
 });
@@ -383,6 +442,7 @@ const GITHUB_AUTH_CONFIGURED = !!(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET && GI
 
 app.get('/api/auth/github/start', (req, res) => {
   if (!GITHUB_AUTH_CONFIGURED) {
+    req.log.warn('github sign-in attempted but not configured on this server');
     return res.status(503).send('GitHub sign-in is not configured on this server.');
   }
   const state = crypto.randomBytes(24).toString('base64url');
@@ -400,11 +460,13 @@ app.get('/api/auth/github/start', (req, res) => {
 app.get('/api/auth/github/callback', async (req, res) => {
   res.append('Set-Cookie', `${OAUTH_STATE_COOKIE}=; ${cookieAttrs(0)}`);
   if (!GITHUB_AUTH_CONFIGURED) {
+    req.log.warn('github oauth callback hit but not configured on this server');
     return res.status(503).send('GitHub sign-in is not configured on this server.');
   }
   const { code, state } = req.query;
   const expectedState = parseCookies(req.headers.cookie)[OAUTH_STATE_COOKIE];
   if (!code || !state || !expectedState || state !== expectedState) {
+    req.log.warn('github oauth callback rejected: missing or mismatched state');
     return res.redirect('/?auth=error');
   }
 
@@ -421,6 +483,7 @@ app.get('/api/auth/github/callback', async (req, res) => {
     });
     const tokenData = await tokenResp.json();
     if (!tokenData.access_token) {
+      req.log.warn('github oauth callback: token exchange returned no access_token');
       return res.redirect('/?auth=error');
     }
 
@@ -439,13 +502,15 @@ app.get('/api/auth/github/callback', async (req, res) => {
       ? emails.find(e => e.primary && e.verified) || emails.find(e => e.verified)
       : null;
     if (!primary?.email) {
+      req.log.warn('github oauth callback: no verified email on account');
       return res.redirect('/?auth=error');
     }
 
     setSessionCookie(res, emailHash(primary.email), primary.email);
+    req.log.info({ provider: 'github', emailHash: emailHash(primary.email) }, 'oauth login succeeded');
     res.redirect('/?auth=success');
   } catch (err) {
-    console.error('[oauth]', err.message);
+    req.log.error({ err, provider: 'github' }, 'oauth callback failed');
     res.redirect('/?auth=error');
   }
 });
@@ -461,7 +526,9 @@ app.get('/api/auth/me', async (req, res) => {
 
 app.post('/api/auth/logout', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  const session = readSession(req);
   clearSessionCookie(res);
+  if (session) req.log.info({ account: session.sub }, 'logged out');
   res.json({ ok: true });
 });
 
@@ -471,6 +538,7 @@ if (process.env.NODE_ENV !== 'production' && PRO_DEV_KEY) {
   app.get('/api/auth/dev-login', (req, res) => {
     const devEmail = 'dev@example.com';
     setSessionCookie(res, emailHash(devEmail), devEmail);
+    req.log.warn('dev-login used: auth bypass session created');
     res.redirect('/?auth=success');
   });
 }
@@ -531,18 +599,23 @@ function saveStats() {
     fs.writeFileSync(tmp, JSON.stringify(stats, null, 2));
     fs.renameSync(tmp, STATS_FILE);
   } catch (err) {
-    console.error('[stats]', err.message);
+    logger.error({ err }, 'failed to persist stats file');
   }
 }
 
 // Purge interval declared after stats so stats.secretsExpired is always initialised
 const purge = setInterval(() => {
   const now = Date.now();
+  let purged = 0;
   for (const [id, s] of secrets) {
     if (now > s.expiresAt) {
       secrets.delete(id);
       stats.secretsExpired++;
+      purged++;
     }
+  }
+  if (purged > 0) {
+    logger.info({ purged, remaining: secrets.size }, 'expired secrets purged');
   }
 }, 60_000);
 
@@ -570,7 +643,7 @@ const MAX_FILENAME_LEN = 255;
 
 // ── Startup checks ────────────────────────────────────────────────────────────
 if (process.env.CIPHER_KEY && !/^[0-9a-f]{64}$/i.test(process.env.CIPHER_KEY)) {
-  console.error('[error] CIPHER_KEY must be exactly 64 hex characters (32 bytes). Exiting.');
+  logger.fatal('CIPHER_KEY must be exactly 64 hex characters (32 bytes). Exiting.');
   process.exit(1);
 }
 
@@ -779,19 +852,22 @@ app.post('/api/license/activate', createLimiter.middleware(), jsonSmall, async (
   if (PRO_DEV_KEY && key === PRO_DEV_KEY) {
     licenses[subHash] = { licenseKey: key, instanceId: 'dev', email: session.email || null, activatedAt: Date.now() };
     saveLicenses();
+    req.log.info({ account: subHash, dev: true }, 'license activated');
     return res.json({ valid: true });
   }
 
   // Already activated with this exact key on this account — nothing to do.
   if (existing && existing.licenseKey === key) {
+    req.log.info({ account: subHash }, 'license re-activation: already active, no-op');
     return res.json({ valid: true });
   }
 
   // Switching to a different key: free the old slot first (best-effort).
   if (existing) {
     try { await deactivateLicense(existing.licenseKey, existing.instanceId); }
-    catch (err) { console.error('[license]', err.message); }
+    catch (err) { req.log.error({ err, account: subHash }, 'failed to deactivate previous license before switching keys'); }
     delete licenses[subHash];
+    req.log.info({ account: subHash }, 'license deactivated (switching keys)');
   }
 
   try {
@@ -799,13 +875,15 @@ app.post('/api/license/activate', createLimiter.middleware(), jsonSmall, async (
     if (!ok) {
       saveLicenses();
       const limitReached = /activation limit/i.test(error || '');
+      req.log.warn({ account: subHash, reason: limitReached ? 'activation_limit' : 'invalid' }, 'license activation rejected');
       return res.json({ valid: false, error: limitReached ? 'activation_limit' : 'invalid' });
     }
     licenses[subHash] = { licenseKey: key, instanceId, email: session.email || null, activatedAt: Date.now() };
     saveLicenses();
+    req.log.info({ account: subHash }, 'license activated');
     res.json({ valid: true });
   } catch (err) {
-    console.error('[license]', err.message);
+    req.log.error({ err, account: subHash }, 'license activation request failed');
     res.status(503).json({ valid: false, error: 'unavailable' });
   }
 });
@@ -828,8 +906,9 @@ app.post('/api/license/deactivate', createLimiter.middleware(), async (req, res)
   saveLicenses();
   if (!(PRO_DEV_KEY && record.licenseKey === PRO_DEV_KEY)) {
     try { await deactivateLicense(record.licenseKey, record.instanceId); }
-    catch (err) { console.error('[license]', err.message); }
+    catch (err) { req.log.error({ err, account: session.sub }, 'failed to deactivate license with Lemon Squeezy'); }
   }
+  req.log.info({ account: session.sub }, 'license deactivated');
   res.json({ ok: true });
 });
 
@@ -859,12 +938,14 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     const retryAfter = licenseUsageLimiter.check(req.session.sub);
     if (retryAfter > 0) {
       res.setHeader('Retry-After', String(retryAfter));
+      req.log.warn({ limiter: 'pro-usage', account: req.session.sub, retryAfter }, 'rate limit exceeded');
       return res.status(429).json({ error: 'This license has reached its daily usage limit. Try again tomorrow, or contact support if this seems wrong.' });
     }
   } else {
     const retryAfter = freeUsageLimiter.check(req.ip);
     if (retryAfter > 0) {
       res.setHeader('Retry-After', String(retryAfter));
+      req.log.warn({ limiter: 'free-usage', retryAfter }, 'rate limit exceeded');
       return res.status(429).json({ error: 'Free plan is limited to 5 secrets per day. Upgrade to Pro for more, or try again tomorrow.' });
     }
   }
@@ -895,6 +976,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
   }
 
   if (secrets.size >= MAX_SECRETS) {
+    req.log.error({ secretsInMemory: secrets.size, cap: MAX_SECRETS }, 'server at secret capacity, rejecting create');
     return res.status(503).json({ error: 'Server is at capacity. Try again shortly.' });
   }
 
@@ -910,6 +992,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid views value.' });
     }
     if (v > 1 && !isPro) {
+      req.log.info({ feature: 'multi-view links' }, 'pro feature blocked: not a pro account');
       return res.status(403).json({ error: 'pro_required', feature: 'multi-view links' });
     }
     viewsAllowed = v;
@@ -919,6 +1002,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
   let passSalt = null;
   if (passphraseRaw !== undefined) {
     if (!isPro) {
+      req.log.info({ feature: 'passphrase protection' }, 'pro feature blocked: not a pro account');
       return res.status(403).json({ error: 'pro_required', feature: 'passphrase protection' });
     }
     if (typeof passphraseRaw !== 'string' ||
@@ -932,9 +1016,11 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
   let notifyEmail = null;
   if (notifyEmailRaw !== undefined) {
     if (!isPro) {
+      req.log.info({ feature: 'view notifications' }, 'pro feature blocked: not a pro account');
       return res.status(403).json({ error: 'pro_required', feature: 'view notifications' });
     }
     if (!resendClient) {
+      req.log.warn('view notification requested but RESEND_API_KEY is not configured');
       return res.status(503).json({ error: 'Email is not configured on this server.' });
     }
     if (typeof notifyEmailRaw !== 'string' || !EMAIL_RE.test(notifyEmailRaw)) {
@@ -944,6 +1030,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
   }
 
   if (Number(expiresInRaw) === 168 && !isPro) {
+    req.log.info({ feature: '7-day expiry' }, 'pro feature blocked: not a pro account');
     return res.status(403).json({ error: 'pro_required', feature: '7-day expiry' });
   }
 
@@ -956,6 +1043,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
   let otpHash = null;
   if (recipientEmail !== undefined) {
     if (!resendClient) {
+      req.log.warn('otp email verification requested but RESEND_API_KEY is not configured');
       return res.status(503).json({ error: 'Email verification is not configured on this server.' });
     }
     if (typeof recipientEmail !== 'string' || !EMAIL_RE.test(recipientEmail)) {
@@ -964,6 +1052,7 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     const emailRetryAfter = emailLimiter.check(req.ip);
     if (emailRetryAfter > 0) {
       res.setHeader('Retry-After', String(emailRetryAfter));
+      req.log.warn({ limiter: 'email', retryAfter: emailRetryAfter }, 'rate limit exceeded');
       return res.status(429).json({ error: 'Too many verification emails. Try again in an hour.' });
     }
 
@@ -972,8 +1061,9 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
     try {
       await sendOTPEmail(recipientEmail, otp, id, viewsAllowed, expiresInHours);
       stats.emailsSent++;
+      req.log.info({ secretId: idFragment(id) }, 'otp email sent');
     } catch (err) {
-      console.error('[email]', err.message);
+      req.log.error({ err, secretId: idFragment(id) }, 'failed to send otp email');
       return res.status(500).json({ error: 'Failed to send verification email. Please try again.' });
     }
   }
@@ -1011,6 +1101,17 @@ app.post('/api/secret', createLimiter.middleware(), async (req, res, next) => {
   stats.secretsCreated++;
   if (otpHash) stats.secretsWithEmail++;
 
+  req.log.info({
+    secretId:    idFragment(id),
+    isPro,
+    isFile:      isFileSecret,
+    viewsAllowed,
+    expiresInHours,
+    hasOtp:      !!otpHash,
+    hasPassphrase: !!passHash,
+    hasNotify:   !!notifyEmail,
+  }, 'secret created');
+
   res.status(201).json({ id });
 });
 
@@ -1031,11 +1132,13 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
 
   const secret = secrets.get(id);
   if (!secret) {
+    req.log.debug({ secretId: idFragment(id) }, 'secret not found (already viewed, expired, or never existed)');
     return res.status(404).json({ error: 'not_found' });
   }
 
   if (Date.now() > secret.expiresAt) {
     secrets.delete(id);
+    req.log.info({ secretId: idFragment(id) }, 'secret access attempted after expiry');
     return res.status(410).json({ error: 'expired' });
   }
 
@@ -1043,6 +1146,7 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   if (secret.passHash) {
     const rawHeader = (req.headers['x-passphrase'] || '').trim();
     if (!rawHeader) {
+      req.log.debug({ secretId: idFragment(id) }, 'passphrase required, not yet supplied');
       return res.status(403).json({ error: 'passphrase_required' });
     }
     let pass = '';
@@ -1058,8 +1162,10 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
       if (secret.passAttempts >= MAX_AUTH_ATTEMPTS) {
         secrets.delete(id);
         stats.secretsBruteForced++;
+        req.log.warn({ secretId: idFragment(id) }, 'secret destroyed: too many passphrase attempts');
         return res.status(410).json({ error: 'too_many_attempts' });
       }
+      req.log.warn({ secretId: idFragment(id), attemptsLeft: MAX_AUTH_ATTEMPTS - secret.passAttempts }, 'invalid passphrase attempt');
       return res.status(403).json({ error: 'invalid_passphrase', attemptsLeft: MAX_AUTH_ATTEMPTS - secret.passAttempts });
     }
   }
@@ -1068,6 +1174,7 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
   if (secret.otpHash) {
     const otp = (req.headers['x-otp'] || '').trim();
     if (!otp) {
+      req.log.debug({ secretId: idFragment(id) }, 'otp required, not yet supplied');
       return res.status(403).json({ error: 'otp_required' });
     }
     if (!/^\d{6}$/.test(otp)) {
@@ -1084,8 +1191,10 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
       if (secret.otpAttempts >= 5) {
         secrets.delete(id);
         stats.secretsBruteForced++;
+        req.log.warn({ secretId: idFragment(id) }, 'secret destroyed: too many otp attempts');
         return res.status(410).json({ error: 'too_many_attempts' });
       }
+      req.log.warn({ secretId: idFragment(id), attemptsLeft: 5 - secret.otpAttempts }, 'invalid otp attempt');
       return res.status(403).json({ error: 'invalid_otp', attemptsLeft: 5 - secret.otpAttempts });
     }
   }
@@ -1109,16 +1218,18 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
       secrets.delete(id);
     }
     stats.secretsRevealed++;
+    req.log.info({ secretId: idFragment(id), viewsLeft, destroyed: viewsLeft <= 0 }, 'secret viewed');
 
     if (secret.notifyEmail && resendClient) {
       sendViewNotification(secret.notifyEmail, viewsLeft, id)
         .then(() => { stats.emailsSent++; })
-        .catch(err => console.error('[email]', err.message));
+        .catch(err => req.log.error({ err, secretId: idFragment(id) }, 'failed to send view notification email'));
     }
 
     payload.viewsLeft = viewsLeft;
     res.json(payload);
-  } catch {
+  } catch (err) {
+    req.log.warn({ err, secretId: idFragment(id) }, 'secret decryption failed');
     return res.status(400).json({ error: 'Decryption failed. The link may be corrupted.' });
   }
 });
@@ -1158,46 +1269,49 @@ app.get('/view/:id', readLimiter.middleware(), (req, res) => {
 
 // ── 404 ─────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
+  req.log.debug('no route matched (unknown path or scan)');
   res.status(404).json({ error: 'Not found.' });
 });
 
 // ── Global error handler ────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
   if (err.type === 'entity.too.large' || err.status === 413) {
+    req.log.warn({ contentLength: req.headers['content-length'] }, 'request rejected: payload too large');
     return res.status(413).json({ error: 'Payload too large.' });
   }
   if (err.status && err.status >= 400 && err.status < 500) {
+    req.log.warn({ err, status: err.status }, 'request rejected: malformed');
     return res.status(err.status).json({ error: 'Invalid request.' });
   }
-  console.error('[error]', err.message);
+  req.log.error({ err }, 'unhandled request error');
   res.status(500).json({ error: 'Internal server error.' });
 });
 
 // ── Startup checks ────────────────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {
   if (!process.env.SECRET_KEY) {
-    console.warn('[warn] SECRET_KEY not set — K3 HMAC binding is disabled (K2 stored unmasked)');
+    logger.warn('SECRET_KEY not set — K3 HMAC binding is disabled (K2 stored unmasked)');
   }
   if (!process.env.CIPHER_KEY) {
-    console.warn('[warn] CIPHER_KEY not set — K4 ciphertext encryption is disabled');
+    logger.warn('CIPHER_KEY not set — K4 ciphertext encryption is disabled');
   }
   if (!process.env.RESEND_API_KEY) {
-    console.warn('[warn] RESEND_API_KEY not set — email OTP feature is disabled');
+    logger.warn('RESEND_API_KEY not set — email OTP feature is disabled');
   }
   if (!process.env.LS_STORE_ID || !process.env.LS_PRODUCT_ID) {
-    console.warn('[warn] LS_STORE_ID / LS_PRODUCT_ID not set — Lemon Squeezy keys from ANY store would validate; Pro effectively limited to BLINK_PRO_DEV_KEY');
+    logger.warn('LS_STORE_ID / LS_PRODUCT_ID not set — Lemon Squeezy keys from ANY store would validate; Pro effectively limited to BLINK_PRO_DEV_KEY');
   }
   if (!GOOGLE_AUTH_CONFIGURED) {
-    console.warn('[warn] Google sign-in not fully configured (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI/SESSION_SECRET) — Google Pro sign-in is disabled');
+    logger.warn('Google sign-in not fully configured (GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_REDIRECT_URI/SESSION_SECRET) — Google Pro sign-in is disabled');
   }
   if (!GITHUB_AUTH_CONFIGURED) {
-    console.warn('[warn] GitHub sign-in not fully configured (GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET/GITHUB_REDIRECT_URI/SESSION_SECRET) — GitHub Pro sign-in is disabled');
+    logger.warn('GitHub sign-in not fully configured (GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET/GITHUB_REDIRECT_URI/SESSION_SECRET) — GitHub Pro sign-in is disabled');
   }
   if (!GOOGLE_AUTH_CONFIGURED && !GITHUB_AUTH_CONFIGURED) {
-    console.warn('[warn] No Pro sign-in provider configured — only BLINK_PRO_DEV_KEY dev-login works locally');
+    logger.warn('No Pro sign-in provider configured — only BLINK_PRO_DEV_KEY dev-login works locally');
   }
   if (process.env.NODE_ENV === 'production' && !process.env.HOST) {
-    console.warn('[warn] HOST not set — HTTPS redirect will not work in production');
+    logger.warn('HOST not set — HTTPS redirect will not work in production');
   }
 }
 
@@ -1205,16 +1319,22 @@ if (process.env.NODE_ENV !== 'test') {
 if (require.main === module) {
   const PORT   = parseInt(process.env.PORT || '3000', 10);
   const server = app.listen(PORT, () => {
-    console.log(`Blink listening on port ${PORT}  [${process.env.NODE_ENV || 'development'}]`);
+    logger.info({ port: PORT, env: process.env.NODE_ENV || 'development', logsDir: LOGS_DIR }, 'Blink listening');
   });
 
   // ── Graceful shutdown ────────────────────────────────────────────────────────
+  // process.exit() never waits for pending disk I/O, so logging right before
+  // it is not enough on its own — flushLogs() must be awaited first, or the
+  // "shutting down" line (and anything just before it) can be lost exactly
+  // when it matters most. The 5s timer is the absolute last-resort kill if
+  // something above hangs; flushLogs()'s own 2s internal timeout keeps it
+  // from ever being what causes that.
   const shutdown = (signal) => {
-    console.log(`${signal}: shutting down`);
+    logger.info({ signal }, 'shutting down');
     saveStats();
     server.close(() => {
       secrets.clear();
-      process.exit(0);
+      flushLogs().then(() => process.exit(0));
     });
     setTimeout(() => process.exit(1), 5_000).unref();
   };
