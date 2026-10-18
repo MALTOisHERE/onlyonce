@@ -474,6 +474,18 @@
   document.getElementById('pro-modal-close').addEventListener('click', () => proOverlay.classList.add('hidden'));
   proOverlay.addEventListener('click', e => { if (e.target === proOverlay) proOverlay.classList.add('hidden'); });
 
+  // ── Rate limit modal ─────────────────────────────────────────────────────
+  // A 429 is rare enough, and important enough to actually read (which plan
+  // tier, when it resets), that it deserves a popup like the Pro modal
+  // instead of a toast that auto-dismisses after 5 seconds.
+  const limitOverlay = document.getElementById('limit-overlay');
+  function showLimitModal(msg) {
+    document.getElementById('limit-modal-body').textContent = msg;
+    openModal(limitOverlay);
+  }
+  document.getElementById('limit-modal-close').addEventListener('click', () => limitOverlay.classList.add('hidden'));
+  limitOverlay.addEventListener('click', e => { if (e.target === limitOverlay) limitOverlay.classList.add('hidden'); });
+
   // ── QR code modal (Pro) ─────────────────────────────────────────────────
   const qrOverlay = document.getElementById('qr-overlay');
   function showQrModal(link) {
@@ -639,13 +651,16 @@
         body:    JSON.stringify(payload),
       });
 
-      if (res.status === 429) {
-        showError('Too many requests. Please wait a moment and try again.');
-        return;
-      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        showError(data.error || 'Something went wrong. Please try again.');
+        const message = data.error || (res.status === 429
+          ? 'Too many requests. Please wait a moment and try again.'
+          : 'Something went wrong. Please try again.');
+        if (res.status === 429) {
+          showLimitModal(message);
+        } else {
+          showError(message);
+        }
         return;
       }
 

@@ -126,6 +126,10 @@ const licenseUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.PRO
 // signal available for an anonymous creator.
 const freeUsageLimiter = new RateLimiter(86_400_000, parseInt(process.env.FREE_USAGE_RATE_LIMIT || '5', 10), 'free-usage');
 
+// All five share one list purely so the snapshot below can loop over them —
+// the limiters themselves are otherwise unrelated and bucket independently.
+const allRateLimiters = [createLimiter, readLimiter, emailLimiter, licenseUsageLimiter, freeUsageLimiter];
+
 // ── Blink Pro licensing (Lemon Squeezy + Google/GitHub Sign-In) ─────────────
 // The license key and its Lemon Squeezy instance ID live ONLY on the server,
 // keyed by a hash of the signed-in account's verified email — never in the
@@ -638,6 +642,56 @@ function saveSecretsSnapshot() {
 
 try { fs.mkdirSync(path.dirname(SECRETS_SNAPSHOT_FILE), { recursive: true }); } catch {}
 loadSecretsSnapshot();
+
+// Same graceful-restart snapshot idea as the secrets Map above, but for
+// rate-limiter state: without this, a deploy silently zeroes everyone's
+// daily free/pro usage count and resets every in-progress burst window,
+// which is a real abuse window (max out the free tier, wait for the next
+// deploy, repeat) rather than just a UX surprise.
+const RATE_LIMITS_SNAPSHOT_FILE = process.env.RATE_LIMITS_SNAPSHOT_FILE || path.join(__dirname, 'data', 'rate-limits-snapshot.json');
+
+function loadRateLimitsSnapshot() {
+  let raw;
+  try {
+    raw = fs.readFileSync(RATE_LIMITS_SNAPSHOT_FILE, 'utf8');
+  } catch {
+    return;
+  }
+  try { fs.unlinkSync(RATE_LIMITS_SNAPSHOT_FILE); } catch {}
+
+  let byName;
+  try {
+    byName = JSON.parse(raw);
+  } catch (err) {
+    logger.error({ err }, 'rate limits snapshot was corrupt, discarding it');
+    return;
+  }
+
+  let restored = 0;
+  for (const limiter of allRateLimiters) {
+    const entries = byName[limiter.name];
+    if (!entries) continue;
+    limiter.restore(entries);
+    restored++;
+  }
+  logger.info({ restored }, 'rate limiter state restored from graceful-shutdown snapshot');
+}
+
+function saveRateLimitsSnapshot() {
+  try {
+    const byName = {};
+    for (const limiter of allRateLimiters) byName[limiter.name] = limiter.serialize();
+    const tmp = RATE_LIMITS_SNAPSHOT_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(byName));
+    fs.renameSync(tmp, RATE_LIMITS_SNAPSHOT_FILE);
+    logger.info('rate limiter state snapshotted for graceful restart');
+  } catch (err) {
+    logger.error({ err }, 'failed to snapshot rate limiter state before shutdown - usage counts will reset');
+  }
+}
+
+try { fs.mkdirSync(path.dirname(RATE_LIMITS_SNAPSHOT_FILE), { recursive: true }); } catch {}
+loadRateLimitsSnapshot();
 
 // ── Statistics ───────────────────────────────────────────────────────────────
 const STATS_FILE = process.env.STATS_FILE || path.join(__dirname, 'data', 'stats.json');
@@ -1414,6 +1468,7 @@ if (require.main === module) {
     saveStats();
     server.close(() => {
       saveSecretsSnapshot();
+      saveRateLimitsSnapshot();
       secrets.clear();
       flushLogs().then(() => process.exit(0));
     });

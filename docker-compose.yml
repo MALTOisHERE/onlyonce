@@ -16,6 +16,7 @@ services:
       - STATS_FILE=/data/stats.json
       - LICENSES_FILE=/data/licenses.json
       - SECRETS_SNAPSHOT_FILE=/data/secrets-snapshot.json
+      - RATE_LIMITS_SNAPSHOT_FILE=/data/rate-limits-snapshot.json
       - LOGS_DIR=/data/logs
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LS_STORE_ID=${LS_STORE_ID}
