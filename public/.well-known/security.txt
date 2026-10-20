@@ -1,0 +1,5 @@
+Contact: mailto:security@malto.icu
+Expires: 2027-10-20T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://blink.malto.icu/.well-known/security.txt
+Policy: https://github.com/MALTOisHERE/onlyonce/security/policy

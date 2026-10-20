@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /view/
+
+Sitemap: https://blink.malto.icu/sitemap.xml
