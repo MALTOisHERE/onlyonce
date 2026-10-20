@@ -108,8 +108,14 @@
   --scrollbar-thumb-hover: #2a3757;
 }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 
+/* Guard against any one element overflowing and dragging the whole page
+   wider than the viewport - without this, a single stray overflow anywhere
+   on the page makes every "full width" element (header, banners, cards)
+   get visibly clipped at the real viewport edge, since their 100% widths
+   are then relative to the inflated, scrollable document instead of what's
+   actually visible. */
 body {
   font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
@@ -118,6 +124,8 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   transition: background .2s ease, color .2s ease;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 ::selection { background: rgba(97,207,90,.35); }
@@ -178,6 +186,7 @@ body {
 .ext-banner-inner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .ext-banner-icon { flex-shrink: 0; }
 .ext-banner-text { font-weight: 500; }
+.ext-banner-text-short { display: none; font-weight: 500; }
 .ext-banner-cta {
   display: inline-flex;
   align-items: center;
@@ -205,6 +214,12 @@ body {
 .ext-banner-close:hover { opacity: 1; }
 @media (max-width: 640px) {
   .ext-banner { padding: 10px 40px 10px 14px; font-size: .78rem; }
+  /* The full announcement sentence is what forced this banner to stack
+     across multiple lines. On mobile, swap it for a short label so the
+     icon, label and CTA all fit on one compact row. */
+  .ext-banner-text { display: none; }
+  .ext-banner-text-short { display: inline; }
+  .ext-banner-inner { flex-direction: row; gap: 8px; }
 }
 
 /* ── Header (slim top bar) ── */
@@ -281,19 +296,13 @@ body {
 .btn-theme-toggle:hover { border-color: var(--border-hi); color: var(--text); background: var(--surface-3); }
 
 /* ── Hero ── */
-.hero {
+.hero-top, .hero-bottom {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 40px;
   text-align: left;
   animation: fadeUp .5s .08s ease both;
   position: relative;
   z-index: 1;
-}
-.hero-top, .hero-bottom {
-  display: flex;
-  flex-direction: column;
 }
 .hero-bottom { gap: 16px; }
 .hero-badge {
@@ -348,14 +357,34 @@ body {
 .hero-row {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
+  grid-template-rows: auto 1fr;
   gap: 56px;
   align-items: stretch;
   margin-bottom: 52px;
 }
+/* Two columns side by side above 860px: hero-top sits over hero-bottom in
+   the left column (card spans both rows, same visual as before this was
+   split into separate grid items). Below 860px the layout drops to one
+   column, and the card is given an explicit row BETWEEN hero-top and
+   hero-bottom - the title/description should be the first thing a phone
+   screen shows, then the actual create-secret box, with the feature
+   badges/stat counter/FAQ link (hero-bottom) pushed below it instead of
+   between the title and the box. */
+.hero-top, .card, .hero-bottom { min-width: 0; }
+.hero-top    { grid-column: 1; grid-row: 1; }
+.card        { grid-column: 2; grid-row: 1 / 3; }
+.hero-bottom { grid-column: 1; grid-row: 2; }
 @media (max-width: 860px) {
   .main { padding-left: 20px; padding-right: 20px; }
-  .hero-row { grid-template-columns: 1fr; gap: 32px; margin-bottom: 36px; }
-  .hero { text-align: center; }
+  .hero-row {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 32px;
+    margin-bottom: 36px;
+  }
+  .hero-top    { grid-column: 1; grid-row: 1; text-align: center; }
+  .card        { grid-column: 1; grid-row: 2; }
+  .hero-bottom { grid-column: 1; grid-row: 3; text-align: center; }
   .hero-badge { margin-left: auto; margin-right: auto; }
   .hero-sub { margin: 0 auto; }
 }
@@ -863,7 +892,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   letter-spacing: .01em;
 }
 @media (max-width: 600px) {
-  .stat-card { flex-direction: column; align-items: flex-start; gap: 4px; }
+  /* flex-wrap stays "wrap" from the base rule above unless reset here -
+     column-direction + wrap, with no explicit height, makes Chrome start a
+     second column once it decides the (auto, unconstrained) height ran out,
+     instead of just stacking all three children in one column. That's what
+     was pushing .stat-sub out to the right past the viewport edge. */
+  .stat-card { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; gap: 4px; }
   .stat-sub { margin-left: 0; }
 }
 
@@ -1227,7 +1261,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   gap: 12px;
   margin-top: 16px;
   margin-bottom: 6px;
-  flex-wrap: wrap;
 }
 .expiry-label {
   font-size: .78rem;
@@ -1238,8 +1271,22 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   white-space: nowrap;
   flex-shrink: 0;
 }
-.expiry-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.expiry-pill { display: flex; cursor: pointer; }
+/* Pills that don't fit scroll horizontally (like a pricing-card strip)
+   instead of wrapping to a second line - min-width: 0 is what lets this
+   flex item actually shrink below its content's natural width so the
+   overflow (and the scrollbar) kicks in rather than pushing .card wider. */
+.expiry-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  min-width: 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.expiry-pills::-webkit-scrollbar { display: none; }
+.expiry-pill { display: flex; cursor: pointer; flex-shrink: 0; }
 .expiry-pill input { display: none; }
 .expiry-pill span {
   padding: 5px 14px;
@@ -2076,18 +2123,27 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   text-align: center;
   animation: fadeUp .4s ease both;
 }
+/* Same idea as .expiry-pills: badges that don't fit scroll horizontally
+   instead of wrapping to a second line. justify-content: center still
+   centers them when they do fit (overflow-x only kicks in once they don't). */
 .extension-badges {
   display: flex;
   justify-content: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px;
 }
+.extension-badges::-webkit-scrollbar { display: none; }
 .ext-badge {
   width: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
+  flex-shrink: 0;
 }
 .ext-badge:disabled { opacity: .55; cursor: not-allowed; }
 .ext-badge:disabled:hover { border-color: var(--border); color: var(--text-muted); background: var(--surface-2); }
