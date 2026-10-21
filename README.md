@@ -18,7 +18,7 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 ## Architecture
 
 ```mermaid
-%%{init: {'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 40, 'rankSpacing': 60}, 'themeVariables': {'fontSize': '14px'}}}%%
+%%{init: {'flowchart': {'useMaxWidth': false, 'htmlLabels': false, 'nodeSpacing': 40, 'rankSpacing': 60}, 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
     A["Browser\nEncrypt secret with key K\n(AES-256-GCM, Web Crypto API)"] --> S{"Split K"}
     S --> K1n["K1\nstays in URL fragment"]
