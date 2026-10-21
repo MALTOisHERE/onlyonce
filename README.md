@@ -18,13 +18,14 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 ## Architecture
 
 ```mermaid
+%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45}, 'themeVariables': {'fontSize': '13px'}}}%%
 flowchart LR
-    A[Browser encrypts secret with key K] -->|split K| B[K1 to URL, K2 to server]
-    B --> C[Server masks K2 with K3, wraps ciphertext with K4]
-    C --> D[(Stored in memory)]
-    D --> E[Recipient opens one-time link]
-    E -->|sends K1| F[Server reconstructs K and decrypts]
-    F --> G[Plaintext returned once, then deleted]
+    A["Browser\nEncrypt secret with key K\n(AES-256-GCM)"] --> B["Split K\nK1 -> URL fragment\nK2 -> sent to server"]
+    B --> C["Server\nMask K2 with K3 (HMAC)\nWrap ciphertext with K4"]
+    C --> D[("In-memory store\nmasked K2 + wrapped ciphertext")]
+    D --> E["Recipient\nopens one-time link"]
+    E -->|"sends K1"| F["Server\nK = K1 XOR K2 XOR HMAC K3,id\ndecrypt: unwrap K4, then K"]
+    F --> G["Plaintext returned once\nsecret deleted from memory"]
 ```
 
 Neither `K1` nor `K2` alone can decrypt anything - the server must participate in every reveal, and `K3`/`K4` never leave the server. See [Key architecture](#key-architecture) below for what each one protects against.
