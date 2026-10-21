@@ -3,7 +3,7 @@
   const K1_B64_RE = /^[A-Za-z0-9+/]{43}=$/;
 
   function setState(id) {
-    document.querySelectorAll('.view-state').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.view-state').forEach(el => { el.classList.remove('active'); });
     document.getElementById(id).classList.add('active');
   }
 

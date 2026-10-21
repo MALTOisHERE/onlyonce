@@ -3,7 +3,7 @@
 // wrong theme the way there would be with an async chrome.storage.get.
 (function () {
   try {
-    var t = localStorage.getItem('blink-ext-theme');
+    const t = localStorage.getItem('blink-ext-theme');
     document.documentElement.setAttribute('data-theme', t || 'light');
   } catch (e) {
     document.documentElement.setAttribute('data-theme', 'light');

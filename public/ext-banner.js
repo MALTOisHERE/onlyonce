@@ -1,6 +1,6 @@
 (function () {
-  var KEY = 'blink-ext-banner-dismissed';
-  var banner = document.getElementById('ext-banner');
+  const KEY = 'blink-ext-banner-dismissed';
+  const banner = document.getElementById('ext-banner');
   if (!banner) return;
 
   try {
@@ -9,7 +9,7 @@
 
   banner.classList.remove('hidden');
 
-  var closeBtn = document.getElementById('ext-banner-close');
+  const closeBtn = document.getElementById('ext-banner-close');
   if (closeBtn) {
     closeBtn.addEventListener('click', function () {
       banner.classList.add('hidden');

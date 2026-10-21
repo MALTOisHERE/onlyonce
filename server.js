@@ -1383,13 +1383,13 @@ app.get('/api/stats', (req, res) => {
 });
 
 // ── About page ───────────────────────────────────────────────────────────────
-app.get('/about', readLimiter.middleware(), (req, res) => {
+app.get('/about', readLimiter.middleware(), (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'about.html'));
 });
 
 // ── Privacy policy page ────────────────────────────────────────────────────
-app.get('/privacy', readLimiter.middleware(), (req, res) => {
+app.get('/privacy', readLimiter.middleware(), (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
 });
@@ -1478,4 +1478,10 @@ if (require.main === module) {
   process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
-module.exports = { app };
+// Test-only hooks: the snapshot save functions are normally only reached via
+// the SIGTERM/SIGINT handlers above, which real signals can't reliably drive
+// in an automated test (Windows in particular doesn't deliver SIGTERM to a
+// child process the way POSIX does). Exporting them lets tests exercise the
+// exact save path directly, then simulate a restart by re-requiring the
+// module against the same snapshot file. No behavior change for production.
+module.exports = { app, saveSecretsSnapshot, saveRateLimitsSnapshot, secrets, allRateLimiters };

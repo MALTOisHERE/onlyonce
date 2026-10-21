@@ -97,8 +97,8 @@
 
   function unlockProUI() {
     isPro = true;
-    document.querySelectorAll('.pro-lock').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.pro-real').forEach(el => el.classList.remove('hidden'));
+    document.querySelectorAll('.pro-lock').forEach(el => { el.classList.add('hidden'); });
+    document.querySelectorAll('.pro-real').forEach(el => { el.classList.remove('hidden'); });
     const hint = document.querySelector('.file-drop-hint');
     if (hint) hint.innerHTML = 'Max 25 MB &nbsp;&middot;&nbsp; Encrypted before upload';
     const cta = document.getElementById('btn-pro-cta');
@@ -179,7 +179,7 @@
 
       const dir = index > prevIndex ? 'slide-in-right' : 'slide-in-left';
 
-      tabs.forEach(t => t.classList.remove('active'));
+      tabs.forEach(t => { t.classList.remove('active'); });
       document.querySelectorAll('.tab-content').forEach(c => {
         c.classList.remove('active', 'slide-in-right', 'slide-in-left');
       });

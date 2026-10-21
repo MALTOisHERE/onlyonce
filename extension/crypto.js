@@ -1,6 +1,7 @@
 // Byte-for-byte mirror of public/app.js's encryptSecret(): any link created
 // here must decrypt correctly on blink.malto.icu/view/:id, so this logic is
 // intentionally kept in lockstep with the website's implementation.
+/* exported blinkEncryptSecret, blinkCreateLink, blinkGeneratePassword */
 
 // Loop-based base64, avoids stack overflow from spread on large arrays.
 function blinkToB64(arr) {

@@ -13,5 +13,51 @@
     "security/detect-object-injection": "off",
     "security/detect-non-literal-fs-filename": "off"
   },
-  "ignorePatterns": ["public/", "node_modules/"]
+  "ignorePatterns": ["node_modules/", "public/qrcode.min.js"],
+  "overrides": [
+    {
+      "files": ["public/**/*.js"],
+      "env": { "browser": true, "node": false, "es2022": true, "serviceworker": true },
+      "rules": {
+        "no-console": ["error", { "allow": ["error", "warn"] }],
+        "security/detect-object-injection": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-unsafe-regex": "off"
+      }
+    },
+    {
+      "files": ["public/app.js"],
+      "globals": { "qrcode": "readonly" }
+    },
+    {
+      "files": ["extension/**/*.js"],
+      "env": { "browser": true, "webextensions": true, "node": false, "es2022": true },
+      "rules": {
+        "no-console": ["error", { "allow": ["error", "warn"] }],
+        "security/detect-object-injection": "off",
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-unsafe-regex": "off"
+      }
+    },
+    {
+      "files": ["extension/background.js"],
+      "globals": { "importScripts": "readonly", "blinkGetSettings": "readonly", "blinkCreateLink": "readonly" }
+    },
+    {
+      "files": ["extension/content.js"],
+      "globals": { "blinkGetSettings": "readonly" }
+    },
+    {
+      "files": ["extension/options.js"],
+      "globals": { "blinkGetSettings": "readonly" }
+    },
+    {
+      "files": ["extension/popup.js"],
+      "globals": { "blinkEncryptSecret": "readonly", "blinkGeneratePassword": "readonly", "BLINK_API_BASE": "readonly" }
+    },
+    {
+      "files": ["extension/crypto.js"],
+      "globals": { "BLINK_API_BASE": "readonly", "BLINK_MAX_SECRET_BYTES": "readonly", "BLINK_DEFAULT_TTL_HOURS": "readonly" }
+    }
+  ]
 }

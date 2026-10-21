@@ -1,4 +1,5 @@
 // Shared across background.js, content.js, popup.js, and options.js.
+/* exported BLINK_API_BASE, BLINK_MAX_SECRET_BYTES, BLINK_DEFAULT_TTL_HOURS, blinkGetSettings */
 const BLINK_API_BASE        = 'https://blink.malto.icu';
 const BLINK_MAX_SECRET_BYTES = 10 * 1024; // mirrors server.js / app.js
 const BLINK_DEFAULT_TTL_HOURS = 48;
