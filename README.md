@@ -17,11 +17,13 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 
 ## Architecture
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
-  <img alt="Blink architecture: browser encrypts and splits the key into K1/K2, the server masks K2 with K3 and wraps the ciphertext with K4 for storage, and on reveal the server reconstructs K, decrypts, returns the plaintext once, then deletes the secret" src="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
-</picture>
+<a href="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
+    <img alt="Blink architecture: browser encrypts and splits the key into K1/K2, the server masks K2 with K3 and wraps the ciphertext with K4 for storage, and on reveal the server reconstructs K, decrypts, returns the plaintext once, then deletes the secret" src="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
+  </picture>
+</a>
 
 Neither `K1` nor `K2` alone can decrypt anything - the server must participate in every reveal, and `K3`/`K4` never leave the server. See [Key architecture](#key-architecture) below for what each one protects against.
 
