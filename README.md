@@ -18,14 +18,24 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 ## Architecture
 
 ```mermaid
-%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 45}, 'themeVariables': {'fontSize': '13px'}}}%%
+%%{init: {'flowchart': {'useMaxWidth': false, 'htmlLabels': true, 'nodeSpacing': 40, 'rankSpacing': 60}, 'themeVariables': {'fontSize': '14px'}}}%%
 flowchart LR
-    A["Browser\nEncrypt secret with key K\n(AES-256-GCM)"] --> B["Split K\nK1 -> URL fragment\nK2 -> sent to server"]
-    B --> C["Server\nMask K2 with K3 (HMAC)\nWrap ciphertext with K4"]
-    C --> D[("In-memory store\nmasked K2 + wrapped ciphertext")]
-    D --> E["Recipient\nopens one-time link"]
-    E -->|"sends K1"| F["Server\nK = K1 XOR K2 XOR HMAC K3,id\ndecrypt: unwrap K4, then K"]
-    F --> G["Plaintext returned once\nsecret deleted from memory"]
+    A["Browser\nEncrypt secret with key K\n(AES-256-GCM, Web Crypto API)"] --> S{"Split K"}
+    S --> K1n["K1\nstays in URL fragment"]
+    S --> K2n["K2\nsent to server"]
+
+    K2n --> MaskStep["Mask K2 with\nHMAC(K3, id)\nK3 = server-only secret"]
+    A --> WrapStep["Wrap ciphertext with K4\nK4 = server-only secret"]
+    MaskStep --> Store[("In-memory store\nmasked K2 + wrapped ciphertext")]
+    WrapStep --> Store
+
+    K1n --> Link["One-time link\n.../view/:id#K1"]
+    Link --> Open["Recipient opens link"]
+    Open -->|"GET /api/secret/:id\nX-Key: K1"| Store
+    Store --> Recon["Reconstruct K\nK1 XOR K2 XOR HMAC(K3, id)"]
+    Recon --> Unwrap["Unwrap ciphertext with K4\ndecrypt with K"]
+    Unwrap --> Plain["Plaintext returned once"]
+    Plain --> Gone["Secret deleted from memory"]
 ```
 
 Neither `K1` nor `K2` alone can decrypt anything - the server must participate in every reveal, and `K3`/`K4` never leave the server. See [Key architecture](#key-architecture) below for what each one protects against.
