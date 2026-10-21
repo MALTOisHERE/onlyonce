@@ -17,16 +17,9 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 
 ## Architecture
 
-<a href="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-dark.png">
-  <picture>
-    <source media="(prefers-color-scheme: light)" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-dark.png">
-    <img alt="" src="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-dark.png">
-  </picture>
-</a>
 <a href="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
     <img alt="Blink architecture: browser encrypts and splits the key into K1/K2, the server masks K2 with K3 and wraps the ciphertext with K4 for storage, and on reveal the server reconstructs K, decrypts, returns the plaintext once, then deletes the secret" src="https://raw.githubusercontent.com/MALTOisHERE/onlyonce/main/.docs/architecture-light.png">
   </picture>
