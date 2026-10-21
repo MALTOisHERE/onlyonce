@@ -17,7 +17,29 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 
 ## Architecture
 
-[View full architecture diagram on FigJam](https://www.figma.com/board/zyhi0yFeGoiPNghCgV661s/Blink-%E2%80%94-How-It-Works--with-OTP-?node-id=0-1&t=E97FNlCEh2ZNJemb-1)
+```mermaid
+flowchart LR
+    A["Secret typed<br/>in browser"] --> B["Encrypt with AES-256-GCM<br/>key K generated client-side"]
+    B --> C{"Split K"}
+    C --> D["K1<br/>stays in URL fragment"]
+    C --> E["K2<br/>sent to server"]
+
+    E --> F["Mask with HMAC(K3, id)<br/>K3 = server-only secret"]
+    B --> G["Wrap ciphertext with K4<br/>K4 = server-only secret"]
+    F --> H[("In-memory store<br/>masked K2 + wrapped ciphertext")]
+    G --> H
+
+    D --> I["One-time link<br/>.../view/:id#K1"]
+    I --> J["Recipient opens link"]
+    J --> K["GET /api/secret/:id<br/>X-Key: K1"]
+    K --> H
+    H --> L["Reconstruct K<br/>K1 XOR K2 XOR HMAC(K3, id)"]
+    L --> M["Unwrap ciphertext with K4,<br/>decrypt with K"]
+    M --> N["Plaintext returned once"]
+    N --> O["Secret deleted<br/>from memory"]
+```
+
+Neither `K1` nor `K2` alone can decrypt anything - the server must participate in every reveal, and `K3`/`K4` never leave the server. See [Key architecture](#key-architecture) below for what each one protects against.
 
 ## Features
 
