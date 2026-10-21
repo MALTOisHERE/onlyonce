@@ -17,26 +17,7 @@ Blink is a self-hosted, end-to-end encrypted secret sharing app. Paste a passwor
 
 ## Architecture
 
-```mermaid
-%%{init: {'flowchart': {'useMaxWidth': false, 'htmlLabels': false, 'nodeSpacing': 40, 'rankSpacing': 60}, 'themeVariables': {'fontSize': '14px'}}}%%
-flowchart LR
-    A["Browser\nEncrypt secret with key K\n(AES-256-GCM, Web Crypto API)"] --> S{"Split K"}
-    S --> K1n["K1\nstays in URL fragment"]
-    S --> K2n["K2\nsent to server"]
-
-    K2n --> MaskStep["Mask K2 with\nHMAC(K3, id)\nK3 = server-only secret"]
-    A --> WrapStep["Wrap ciphertext with K4\nK4 = server-only secret"]
-    MaskStep --> Store[("In-memory store\nmasked K2 + wrapped ciphertext")]
-    WrapStep --> Store
-
-    K1n --> Link["One-time link\n.../view/:id#K1"]
-    Link --> Open["Recipient opens link"]
-    Open -->|"GET /api/secret/:id\nX-Key: K1"| Store
-    Store --> Recon["Reconstruct K\nK1 XOR K2 XOR HMAC(K3, id)"]
-    Recon --> Unwrap["Unwrap ciphertext with K4\ndecrypt with K"]
-    Unwrap --> Plain["Plaintext returned once"]
-    Plain --> Gone["Secret deleted from memory"]
-```
+![Blink architecture: browser encrypts and splits the key into K1/K2, the server masks K2 with K3 and wraps the ciphertext with K4 for storage, and on reveal the server reconstructs K, decrypts, returns the plaintext once, then deletes the secret](.docs/architecture.png)
 
 Neither `K1` nor `K2` alone can decrypt anything - the server must participate in every reveal, and `K3`/`K4` never leave the server. See [Key architecture](#key-architecture) below for what each one protects against.
 
