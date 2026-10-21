@@ -1,5 +1,8 @@
 'use strict';
 
+// ── Email rate-limit message ─────────────────────────────────────────────────
+// Regression guard: asserts the real "too many verification emails" error
+// body on the 2nd OTP request within an hour, not a generic 429 message.
 const http = require('node:http');
 
 const mockResend = http.createServer((req, res) => {

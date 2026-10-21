@@ -1,3 +1,9 @@
+// ── Homepage: create-secret page ─────────────────────────────────────────────
+// Drives index.html's create flow end to end: client-side AES-256-GCM
+// encryption and the K1/K2 key split, the password generator, file-secret
+// drag/drop, the Pro upgrade/license modal, and the result/rate-limit
+// popups. Nothing here ever sends plaintext or the full key to the server -
+// see encryptSecret()/encryptFile() below for the split itself.
 (() => {
   const MAX_SECRET_BYTES = 10 * 1024; // 10 KB
 
@@ -286,6 +292,10 @@
   });
 
   // ── File tab ───────────────────────────────────────────────────────────────
+  // UX nudge, not a real security boundary - a file is just encrypted bytes
+  // to Blink either way, and renaming the extension would bypass this
+  // trivially. Blocking these up front just stops someone from accidentally
+  // sharing an executable through a tool built for passwords/notes.
   const BLOCKED_EXTENSIONS = new Set([
     'exe', 'bat', 'cmd', 'com', 'msi', 'msp', 'msc', 'scr', 'pif', 'lnk',
     'ps1', 'psm1', 'psd1', 'vbs', 'vbe', 'jse', 'wsf', 'wsh', 'hta',
@@ -293,6 +303,9 @@
     'reg', 'inf', 'cpl', 'dll', 'so', 'dylib',
     'jar', 'apk', 'ipa', 'dmg', 'pkg', 'deb', 'rpm',
   ]);
+  // Mirrors server.js's MAX_FILE_CT_LEN(_PRO) - this is just an early,
+  // friendlier rejection before spending time encrypting; the server
+  // re-checks the real ciphertext size regardless and is the actual limit.
   const maxFileBytes = () => (isPro ? 25 : 2) * 1024 * 1024;
 
   let _selectedFile = null;
@@ -358,7 +371,7 @@
 
   // ── Crypto ─────────────────────────────────────────────────────────────────
 
-  // Loop-based base64 — avoids stack overflow from spread on large arrays (F-07)
+  // Loop-based base64 — avoids stack overflow from spread on large arrays
   function toB64(arr) {
     let str = '';
     for (let i = 0; i < arr.length; i++) str += String.fromCharCode(arr[i]);
@@ -782,7 +795,7 @@
         const from = Math.max(0, secretsCreated - Math.min(secretsCreated, 80));
         const step = ts => {
           const p = Math.min((ts - start) / duration, 1);
-          const ease = 1 - Math.pow(1 - p, 3);
+          const ease = 1 - (1 - p) ** 3;
           el.textContent = Math.round(from + (secretsCreated - from) * ease).toLocaleString();
           if (p < 1) requestAnimationFrame(step);
         };

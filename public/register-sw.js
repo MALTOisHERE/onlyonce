@@ -1,5 +1,12 @@
+// ── Service worker registration + install prompt ────────────────────────────
+// Registers sw.js (offline caching, see that file) and wires up the "Install
+// app" button using the deferred beforeinstallprompt event - see below.
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 
+// Chrome fires this event once, then does nothing unless preventDefault()
+// is called and the saved event's own .prompt() is invoked later - this is
+// what lets the install button show up and work on demand instead of the
+// browser's own (easy to miss) address-bar install icon.
 let _installPrompt = null;
 
 function setInstallVisible(visible) {
@@ -7,7 +14,7 @@ function setInstallVisible(visible) {
   if (!btn) return;
   const sep = btn.previousElementSibling;
   btn.classList.toggle('hidden', !visible);
-  if (sep && sep.classList.contains('logo-sep')) sep.classList.toggle('hidden', !visible);
+  if (sep?.classList.contains('logo-sep')) sep.classList.toggle('hidden', !visible);
 }
 
 window.addEventListener('beforeinstallprompt', e => {

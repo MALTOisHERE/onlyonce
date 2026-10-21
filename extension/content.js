@@ -1,3 +1,4 @@
+// ── Floating selection bubble (content script) ──────────────────────────────
 // Shows a small floating button next to any text selection on the page, as
 // a faster alternative to the right-click "Send via Blink" menu item.
 // Runs on every http(s) page (see manifest.json), so it's built defensively:
@@ -186,12 +187,12 @@
   }
 
   document.addEventListener('mouseup', (e) => {
-    if (host && host.contains(e.target)) return;
+    if (host?.contains(e.target)) return;
     setTimeout(onSelectionChange, 0);
   });
 
   document.addEventListener('mousedown', (e) => {
-    if (host && host.contains(e.target)) return;
+    if (host?.contains(e.target)) return;
     hideButton();
   });
 
@@ -206,7 +207,7 @@
     setLabel('Encrypting…');
     try {
       const resp = await chrome.runtime.sendMessage({ type: 'blink-create-from-selection', text: lastText });
-      if (!resp || !resp.ok) throw new Error(resp?.error || 'Failed to create link.');
+      if (!resp?.ok) throw new Error(resp?.error || 'Failed to create link.');
       // Copied here, not in background.js: this click is a live user gesture
       // in the page itself, which the Clipboard API accepts. background.js's
       // chrome.scripting.executeScript route needs activeTab, which this

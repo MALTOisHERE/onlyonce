@@ -1,5 +1,6 @@
 'use strict';
 
+// ── Graceful-restart snapshot ────────────────────────────────────────────────
 // Verifies the graceful-restart snapshot round trip: pending secrets and
 // rate-limiter usage counts must survive a deploy instead of silently
 // resetting. A real SIGTERM can't drive this reliably across platforms

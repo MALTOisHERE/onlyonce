@@ -1,5 +1,11 @@
 'use strict';
 
+// ── Core secret create/reveal flow ──────────────────────────────────────────
+// Payload validation on POST /api/secret, the full create-then-reveal round
+// trip, view-once deletion, and GET /api/stats. See license.test.js for the
+// Pro-gated features (passphrase, multi-view, 7-day expiry) and otp.test.js
+// for the email-OTP gate - both build secrets through this same endpoint.
+//
 // Set env vars before requiring server (K3/K4/rates read at module load)
 process.env.NODE_ENV          = 'test';
 process.env.SECRET_KEY        = 'test-hmac-secret-key-for-k3';

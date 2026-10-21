@@ -1,9 +1,17 @@
 'use strict';
 
+// ── Blink server ─────────────────────────────────────────────────────────────
+// Express app for the whole backend: creating/revealing view-once encrypted
+// secrets, the optional passphrase/email-OTP gates on a reveal, Pro
+// licensing (Lemon Squeezy) behind Google/GitHub sign-in, rate limiting, and
+// the in-memory store with graceful-restart snapshotting. See the README's
+// "Key architecture" section for the K1-K4 encryption model this file
+// implements; this is the only place K3/K4 and the license store live.
+
 const express      = require('express');
-const crypto       = require('crypto');
-const fs           = require('fs');
-const path         = require('path');
+const crypto       = require('node:crypto');
+const fs           = require('node:fs');
+const path         = require('node:path');
 const { Resend }   = require('resend');
 const pinoHttp     = require('pino-http');
 
@@ -43,7 +51,7 @@ app.use(pinoHttp({
   autoLogging: {
     ignore(req) { return !req.url.startsWith('/api/'); },
   },
-  customLogLevel(req, res, err) {
+  customLogLevel(_req, res, err) {
     if (err || res.statusCode >= 500) return 'error';
     if (res.statusCode >= 400) return 'warn';
     return 'info';
@@ -69,7 +77,12 @@ app.use(pinoHttp({
 }));
 
 // ── Security headers ────────────────────────────────────────────────────────
-app.use((req, res, next) => {
+// CSP default-src 'none' plus narrow allowlists per directive: every
+// resource type must be explicitly opted in, so a new script/style/image
+// source added anywhere in the frontend fails closed until it's added here
+// too. assets.malto.icu is the one external origin, used only for the
+// logo/icon images and fonts served from a CDN separate from the app itself.
+app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options',     'nosniff');
   res.setHeader('X-Frame-Options',            'DENY');
   res.setHeader('X-XSS-Protection',           '0');
@@ -160,6 +173,9 @@ const LICENSE_INSTANCE_RE = /^[A-Za-z0-9-]{1,64}$/;
 const LICENSE_CACHE_TTL = 3_600_000; // 1 hour
 const licenseCache = new Map(); // "key:instanceId" -> { valid, exp }
 
+// The next three functions are thin wrappers around Lemon Squeezy's hosted
+// license API (activate/deactivate/validate a key against their servers) -
+// this app never stores or checks license validity on its own.
 function licenseMetaMatches(data) {
   return (!LS_STORE_ID   || data?.meta?.store_id   === LS_STORE_ID)
       && (!LS_PRODUCT_ID || data?.meta?.product_id === LS_PRODUCT_ID);
@@ -1371,13 +1387,13 @@ app.get('/api/secret/:id', readLimiter.middleware(), (req, res) => {
 // ── GET /api/config ──────────────────────────────────────────────────────────
 // Public frontend configuration. The checkout URL is not a secret (it is a
 // public payment page) — env keeps it configurable per deployment.
-app.get('/api/config', (req, res) => {
+app.get('/api/config', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({ proCheckoutUrl: process.env.PRO_CHECKOUT_URL || null, version: APP_VERSION });
 });
 
 // ── GET /api/stats ───────────────────────────────────────────────────────────
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({ secretsCreated: stats.secretsCreated });
 });

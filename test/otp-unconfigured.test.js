@@ -1,5 +1,9 @@
 'use strict';
 
+// ── Email OTP: no provider configured ───────────────────────────────────────
+// Confirms POST /api/secret with recipientEmail fails clearly (503) when
+// RESEND_API_KEY isn't set, rather than silently accepting an OTP it can
+// never actually send.
 process.env.NODE_ENV   = 'test';
 process.env.SECRET_KEY = 'test-hmac-secret-key-for-k3';
 process.env.CIPHER_KEY = 'deadbeef'.repeat(8);

@@ -1,5 +1,6 @@
 'use strict';
 
+// ── Auth: nothing configured ─────────────────────────────────────────────────
 // No SESSION_SECRET, no OAuth client envs, no BLINK_PRO_DEV_KEY — exercises
 // the "nothing configured" state every self-hosted instance starts in.
 process.env.NODE_ENV   = 'test';

@@ -1,3 +1,7 @@
+// ── Options page ─────────────────────────────────────────────────────────────
+// The extension's settings page: toggling the floating bubble and the
+// right-click menu, and picking a default link expiry. Reads/writes the
+// same chrome.storage.sync settings object defined in config.js.
 (() => {
   document.getElementById('ext-version').textContent = `v${chrome.runtime.getManifest().version}`;
 

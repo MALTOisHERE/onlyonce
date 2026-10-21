@@ -1,5 +1,6 @@
 'use strict';
 
+// ── OAuth success path (mocked token exchange) ──────────────────────────────
 // Google/GitHub's OAuth endpoints are hardcoded in server.js (unlike Resend's
 // RESEND_BASE_URL, there's no env var to redirect them to a local server), so
 // the only way to exercise the real success path is to stub global.fetch.

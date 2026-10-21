@@ -1,5 +1,9 @@
 'use strict';
 
+// ── Public config endpoint ───────────────────────────────────────────────────
+// GET /api/config: the frontend's only source for the app version and the
+// Pro checkout URL. No session, no secrets - just confirms the shape and
+// the no-store cache header.
 process.env.NODE_ENV   = 'test';
 process.env.SECRET_KEY = 'test-hmac-secret-key-for-k3';
 process.env.CIPHER_KEY = 'deadbeef'.repeat(8);

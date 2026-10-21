@@ -1,5 +1,9 @@
 'use strict';
 
+// ── OWNER_EMAILS allowlist ───────────────────────────────────────────────────
+// Confirms an account whose verified email is in OWNER_EMAILS gets Pro
+// automatically - no license activation at all - exactly as server.js's
+// isProForSession() is supposed to short-circuit for site owners.
 process.env.NODE_ENV          = 'test';
 process.env.SECRET_KEY        = 'test-hmac-secret-key-for-k3';
 process.env.CIPHER_KEY        = 'deadbeef'.repeat(8);

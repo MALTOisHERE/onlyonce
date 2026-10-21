@@ -1,4 +1,7 @@
-// Shared across background.js, content.js, popup.js, and options.js.
+// ── Shared extension config ──────────────────────────────────────────────────
+// Constants and the settings reader shared across background.js, content.js,
+// popup.js, and options.js. Loaded first everywhere (see manifest.json),
+// so every other extension script can use these as plain globals.
 /* exported BLINK_API_BASE, BLINK_MAX_SECRET_BYTES, BLINK_DEFAULT_TTL_HOURS, blinkGetSettings */
 const BLINK_API_BASE        = 'https://blink.malto.icu';
 const BLINK_MAX_SECRET_BYTES = 10 * 1024; // mirrors server.js / app.js

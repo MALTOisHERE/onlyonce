@@ -1,3 +1,7 @@
+// ── Toolbar popup ────────────────────────────────────────────────────────────
+// The extension's toolbar popup: a "create a link" tab (text, with its own
+// expiry picker) and a password-generator tab, both reusing crypto.js's
+// encrypt-and-split logic directly rather than opening the website.
 (() => {
   // ── Footer version ──────────────────────────────────────────────────────
   document.getElementById('ext-version').textContent = `v${chrome.runtime.getManifest().version}`;

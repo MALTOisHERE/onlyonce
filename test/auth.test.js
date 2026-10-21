@@ -1,5 +1,11 @@
 'use strict';
 
+// ── Auth: OAuth start/callback + session lifecycle (configured) ────────────
+// Google/GitHub sign-in with every provider env var set: the /start
+// redirects, state-cookie validation on /callback, dev-login, and
+// login/logout via GET /api/auth/me. The real OAuth success path (mocked
+// token exchange) lives in oauth-success.test.js; auth-unconfigured.test.js
+// covers the opposite case, with nothing configured at all.
 process.env.NODE_ENV           = 'test';
 process.env.SECRET_KEY         = 'test-hmac-secret-key-for-k3';
 process.env.CIPHER_KEY         = 'deadbeef'.repeat(8);

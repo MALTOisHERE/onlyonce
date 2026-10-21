@@ -1,3 +1,4 @@
+// ── OTP box input ────────────────────────────────────────────────────────────
 // Turns a .otp-boxes container of single-digit <input> boxes into a drop-in
 // replacement for a plain text input: defines .value (get/set) and .focus()
 // on the container itself, so view.js's existing otp-input.value/.focus()

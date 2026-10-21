@@ -1,3 +1,6 @@
+// ── About page ───────────────────────────────────────────────────────────────
+// The FAQ accordion on about.html, plus the Pro pricing card's CTA (opens
+// the configured checkout, or falls back to the homepage pricing section).
 (() => {
   document.querySelectorAll('.faq-q').forEach(btn => {
     btn.addEventListener('click', () => {

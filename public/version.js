@@ -1,3 +1,6 @@
+// ── Footer version ───────────────────────────────────────────────────────────
+// Fills in the running app version (from GET /api/config) wherever an
+// #app-version element exists in the page footer.
 (() => {
   const el = document.getElementById('app-version');
   if (!el) return;

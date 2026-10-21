@@ -1,5 +1,9 @@
 'use strict';
 
+// ── File secrets ─────────────────────────────────────────────────────────────
+// The isFile payload path on POST /api/secret and GET /api/secret/:id:
+// filename/mimetype validation and the create-then-reveal round trip
+// returning the original bytes intact.
 process.env.NODE_ENV           = 'test';
 process.env.SECRET_KEY         = 'test-hmac-secret-key-for-k3';
 process.env.CIPHER_KEY         = 'deadbeef'.repeat(8);

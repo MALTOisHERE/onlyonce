@@ -1,3 +1,9 @@
+// ── View page: reveal flow ───────────────────────────────────────────────────
+// Drives view.html, the page a recipient lands on from a shared link. Reads
+// K1 from the URL fragment (never sent in a request body), calls
+// GET /api/secret/:id with it, and walks through whatever the server asks
+// for next - a passphrase, an email OTP, or straight to the decrypted
+// plaintext/file - showing the matching UI state at each step.
 (() => {
   const UUID_RE  = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const K1_B64_RE = /^[A-Za-z0-9+/]{43}=$/;
@@ -47,7 +53,9 @@
     }
     setState('state-secret');
 
-    // Defined once, not re-attached on repeated calls (F-19)
+    // Defined once here rather than inside copyBtn.onclick, so calling
+    // showSecret() again (e.g. after a multi-view reveal) doesn't rebuild
+    // this string every time for no reason.
     const copyBtn = document.getElementById('btn-copy-secret');
     const COPY_HTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy to Clipboard`;
 
@@ -141,6 +149,7 @@
         showSecret(data.plaintext, viewsLeft);
       }
     } catch (err) {
+      console.error('[Blink] failed to reveal secret:', err);
       onDone?.();
       showExpired('Something Went Wrong', 'Could not retrieve or decrypt the secret. The link may be malformed or have been tampered with.');
     }
@@ -150,6 +159,10 @@
     const btn   = document.getElementById('btn-passphrase-submit');
     const input = document.getElementById('passphrase-view-input');
     input.focus();
+    // revealSecret() re-calls setupPassphrase() on every wrong attempt, so the
+    // button keeps picking up a fresh listener each time; cloning it first
+    // drops any listener(s) from a previous attempt instead of stacking more
+    // on top (which would fire the same submit multiple times per click).
     const clone = btn.cloneNode(true);
     btn.parentNode.replaceChild(clone, btn);
     clone.addEventListener('click', () => {
@@ -168,6 +181,7 @@
     const btn   = document.getElementById('btn-otp-submit');
     const input = document.getElementById('otp-input');
     input.focus();
+    // Same reset-the-listener reason as setupPassphrase() above.
     const clone = btn.cloneNode(true);
     btn.parentNode.replaceChild(clone, btn);
     clone.addEventListener('click', () => {

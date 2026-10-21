@@ -1,3 +1,7 @@
+// ── Theme toggle button ──────────────────────────────────────────────────────
+// Wires the header's light/dark toggle: flips data-theme on <html>, persists
+// the choice to localStorage (read back by theme-init.js on the next load),
+// and swaps the button's icon to match.
 (() => {
   const STORAGE_KEY = 'blink-theme';
   const SUN_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
@@ -7,7 +11,7 @@
   if (!btn) return;
 
   function systemPrefersDark() {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   }
 
   function resolvedTheme() {
@@ -24,7 +28,7 @@
   btn.addEventListener('click', () => {
     const next = resolvedTheme() === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, next); } catch (_e) {}
     render();
   });
 

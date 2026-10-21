@@ -1,5 +1,11 @@
 'use strict';
 
+// ── Email OTP: creation + reveal (full flow) ────────────────────────────────
+// Create and reveal flows for the email-OTP gate, including a real success
+// case - the mock Resend server below captures the actual generated code
+// from the sent email's body, so this isn't just testing failure paths -
+// plus the 5-attempt lockout. otp-unconfigured.test.js covers the 503 case.
+
 const http = require('node:http');
 
 // A fake Resend API so OTP emails "send" successfully without a real network

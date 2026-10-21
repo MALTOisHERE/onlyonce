@@ -1,3 +1,8 @@
+// ── Service worker ───────────────────────────────────────────────────────────
+// Offline/PWA support: caches a handful of static assets at install time
+// and serves them when the network fetch fails. Deliberately stays out of
+// the way of anything dynamic - see the fetch handler below for exactly
+// what it will and won't intercept.
 const CACHE = 'blink-v5';
 const STATIC = ['/style.css', '/app.js', '/about.html', '/fonts/space-grotesk.woff2'];
 

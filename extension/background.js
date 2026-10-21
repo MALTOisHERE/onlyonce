@@ -1,3 +1,9 @@
+// ── Background service worker ────────────────────────────────────────────────
+// Owns the right-click "Send via Blink" context menu and the message
+// handler the floating selection bubble (content.js) calls into. Both
+// paths just encrypt + create a link; see copyToTab()'s comment for why
+// each has to copy the result to the clipboard its own way.
+//
 // Chrome loads this as a true service worker (no access to other manifest
 // scripts unless imported here). Firefox's MV3 background runs as an event
 // page that already loaded config.js/crypto.js first via the "scripts"
@@ -86,7 +92,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // live user gesture from the click, no activeTab needed) once this resolves.
 // Returning true keeps the message channel open until sendResponse() fires
 // (required for an async response per the chrome.runtime.onMessage contract).
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== 'blink-create-from-selection') return;
   (async () => {
     try {

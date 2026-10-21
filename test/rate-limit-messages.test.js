@@ -1,5 +1,6 @@
 'use strict';
 
+// ── Free-tier rate-limit message ─────────────────────────────────────────────
 // Deliberately low free-tier limit so this test can actually trip it —
 // regression coverage for a real bug: the frontend used to show a generic
 // "too many requests" message for every 429, masking the server's real one

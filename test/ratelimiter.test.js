@@ -1,5 +1,9 @@
 'use strict';
 
+// ── RateLimiter unit tests ───────────────────────────────────────────────────
+// Tests lib/ratelimiter.js directly (no server/HTTP involved): the
+// fixed-window counting, per-key bucketing, retry-after values, and the
+// Express middleware wrapper's 429 response.
 const { describe, test } = require('node:test');
 const assert             = require('node:assert/strict');
 const { RateLimiter }    = require('../lib/ratelimiter');
